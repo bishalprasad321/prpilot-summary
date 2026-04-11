@@ -21,7 +21,9 @@ import { StateManager } from "./state/state-manager";
 import { Formatter } from "./utils/formatter";
 import { LLMOutput } from "./utils/types";
 
-function isValidLLMOutput(output: Record<string, unknown>): output is LLMOutput {
+function isValidLLMOutput(
+  output: Record<string, unknown>
+): output is LLMOutput {
   return (
     typeof output.summary === "string" &&
     typeof output.keyPoints === "object" &&
@@ -54,8 +56,7 @@ async function main() {
       aiModel: core.getInput("ai_model") || "gpt-4o-mini",
       maxDiffLines: parseInt(core.getInput("max_diff_lines")) || 5000,
       enableIncrementalDiffProcessing:
-        core.getInput("eenable_incremental_diff_processing") === "true" ||
-        true,
+        core.getInput("eenable_incremental_diff_processing") === "true" || true,
       debug: core.getInput("debug") === "true" || false,
     };
 
@@ -179,8 +180,13 @@ async function main() {
       lastProcessedSha &&
       eventAction === "synchronize"
     ) {
-      logger.info(`🟡 Incremental mode: fetching diff from ${lastProcessedSha.slice(0, 7)}`);
-      diffContent = await gitHub.getDiffBetween(lastProcessedSha, currentHeadSha);
+      logger.info(
+        `🟡 Incremental mode: fetching diff from ${lastProcessedSha.slice(0, 7)}`
+      );
+      diffContent = await gitHub.getDiffBetween(
+        lastProcessedSha,
+        currentHeadSha
+      );
       diffMode = "incremental";
     } else {
       logger.info(`🟢 Full mode: fetching diff from base to head`);
@@ -243,16 +249,20 @@ async function main() {
       },
       stats: {
         filesChanged: files.length,
-        totalAdditions: processedChunks.reduce((acc, c) => acc + c.additions, 0),
-        totalDeletions: processedChunks.reduce((acc, c) => acc + c.deletions, 0),
+        totalAdditions: processedChunks.reduce(
+          (acc, c) => acc + c.additions,
+          0
+        ),
+        totalDeletions: processedChunks.reduce(
+          (acc, c) => acc + c.deletions,
+          0
+        ),
         commits: commits.length,
       },
     };
 
     logger.info(`✓ Context prepared`);
-    logger.info(
-      `  - Context size: ${JSON.stringify(context).length} bytes`
-    );
+    logger.info(`  - Context size: ${JSON.stringify(context).length} bytes`);
 
     if (inputs.debug) {
       logger.debug("=== DEBUG: Context Prepared ===");
@@ -271,14 +281,18 @@ async function main() {
       llmOutput = await llm.callLLM(prompt);
 
       logger.info(`✓ LLM execution successful`);
-      logger.info(`  - Summary length: ${(llmOutput.summary as string).length} chars`);
+      logger.info(
+        `  - Summary length: ${(llmOutput.summary as string).length} chars`
+      );
 
       if (inputs.debug) {
         logger.debug("=== DEBUG: LLM Output ===");
         logger.debug(JSON.stringify(llmOutput, null, 2));
       }
     } catch (error) {
-      logger.error(`❌ LLM execution failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `❌ LLM execution failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       logger.error(
         `🛑 Will not update PR to avoid breaking developer workflow`
       );
@@ -366,7 +380,9 @@ async function main() {
     logger.info("✨ PR description updated successfully");
     logger.info(`📊 Summary:`);
     logger.info(`  - Files: ${files.length}`);
-    logger.info(`  - Changes: +${context.stats.totalAdditions}/-${context.stats.totalDeletions}`);
+    logger.info(
+      `  - Changes: +${context.stats.totalAdditions}/-${context.stats.totalDeletions}`
+    );
     logger.info(`  - Commits: ${commits.length}`);
     logger.info(`  - PR: #${prNumber} (${pr.title})`);
     logger.info("=".repeat(70));

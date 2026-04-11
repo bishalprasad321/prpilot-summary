@@ -22,7 +22,14 @@ export interface CommitInfo {
 
 export interface FileChange {
   filename: string;
-  status: "added" | "removed" | "modified" | "renamed" | "copied" | "unchanged" | "type-changed";
+  status:
+    | "added"
+    | "removed"
+    | "modified"
+    | "renamed"
+    | "copied"
+    | "unchanged"
+    | "type-changed";
   additions: number;
   deletions: number;
   changes: number;

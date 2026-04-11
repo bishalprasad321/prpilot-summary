@@ -145,9 +145,6 @@ export class Formatter {
       return null;
     }
 
-    return body.substring(
-      startIdx + AI_SECTION_START.length,
-      endIdx
-    ).trim();
+    return body.substring(startIdx + AI_SECTION_START.length, endIdx).trim();
   }
 }

@@ -186,11 +186,13 @@ export class DiffProcessor {
     // Sort by priority: modified first, then by size
     const sorted = [...chunks].sort((a, b) => {
       const priorityOrder = { modified: 0, added: 1, renamed: 2, removed: 3 };
-      const priorityA = priorityOrder[a.status as keyof typeof priorityOrder] ?? 9;
-      const priorityB = priorityOrder[b.status as keyof typeof priorityOrder] ?? 9;
+      const priorityA =
+        priorityOrder[a.status as keyof typeof priorityOrder] ?? 9;
+      const priorityB =
+        priorityOrder[b.status as keyof typeof priorityOrder] ?? 9;
 
       if (priorityA !== priorityB) return priorityA - priorityB;
-      return (b.additions + b.deletions) - (a.additions + a.deletions);
+      return b.additions + b.deletions - (a.additions + a.deletions);
     });
 
     let lineCount = 0;

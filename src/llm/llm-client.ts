@@ -157,13 +157,13 @@ Please generate a JSON response with the PR description details.`;
           );
           return parsed;
         } catch {
-          throw new Error(`Failed to parse LLM response as JSON: ${content.substring(0, 100)}`);
+          throw new Error(
+            `Failed to parse LLM response as JSON: ${content.substring(0, 100)}`
+          );
         }
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        this.logger.warn(
-          `Attempt ${attempt} failed: ${lastError.message}`
-        );
+        this.logger.warn(`Attempt ${attempt} failed: ${lastError.message}`);
 
         if (attempt < maxRetries) {
           // Exponential backoff: 1s, 2s, 4s
