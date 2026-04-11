@@ -19,6 +19,17 @@ import { DiffProcessor } from "./diff/diff-processor";
 import { LLMClient } from "./llm/llm-client";
 import { StateManager } from "./state/state-manager";
 import { Formatter } from "./utils/formatter";
+import { LLMOutput } from "./utils/types";
+
+function isValidLLMOutput(output: Record<string, unknown>): output is LLMOutput {
+  return (
+    typeof output.summary === "string" &&
+    typeof output.keyPoints === "object" &&
+    typeof output.highlights === "object" &&
+    Array.isArray(output.keyPoints) &&
+    Array.isArray(output.highlights)
+  );
+}
 
 // =============================================================================
 // INITIALIZATION
@@ -287,7 +298,10 @@ async function main() {
     // =========================================================================
     logger.info("🎨 [STEP 10] Formatting output to Markdown...");
 
-    const formattedDescription = formatter.toMarkdown(llmOutput);
+    if (!isValidLLMOutput(llmOutput)) {
+      throw new Error("Invaliud LLM output format");
+    }
+    const formattedDescription = formatter.toMarkdown(llmOutput as LLMOutput);
 
     logger.info(`✓ Output formatted`);
     logger.info(`  - Markdown size: ${formattedDescription.length} bytes`);

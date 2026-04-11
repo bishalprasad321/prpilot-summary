@@ -83,7 +83,7 @@ Output MUST be valid JSON with this exact structure:
     const userPrompt = `Please analyze this pull request and generate a description:
 
 **PR**: #${repoMetadata.prNumber}
-**Title**: ${repoMetadata.title}
+**Title**: ${repoMetadata.prTitle}
 **Repository**: ${repoMetadata.owner}/${repoMetadata.name}
 
 **Commit Messages**:
@@ -156,7 +156,7 @@ Please generate a JSON response with the PR description details.`;
             `✓ LLM succeeded on attempt ${attempt} (summary: ${parsed.summary.length} chars)`
           );
           return parsed;
-        } catch (parseError) {
+        } catch {
           throw new Error(`Failed to parse LLM response as JSON: ${content.substring(0, 100)}`);
         }
       } catch (error) {

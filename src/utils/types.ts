@@ -61,6 +61,7 @@ export interface LLMOutput {
   keyPoints: string[];
   highlights: string[];
   breaking?: boolean;
+  [key: string]: unknown;
 }
 
 export interface GitHubClientConfig {

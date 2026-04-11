@@ -7,11 +7,9 @@ inputs:
   github_token:
     description: "GitHub token with permissions to read PR details and post comments."
     required: true
-    default: "${{ secrets.GITHUB_TOKEN }}"
   llm_api_key:
     description: "LLM API key for accessing the AI model to generate PR descriptions."
     required: true
-    default: "${{ secrets.LLM_API_KEY }}"
   ai_model:
     description: "The AI model to use for generating the PR description (e.g., 'gpt-4')."
     required: false
@@ -20,10 +18,15 @@ inputs:
     description: "Maximum diff lines to process for generating the PR description. If the diff exceeds this limit, a summary will be generated instead."
     required: false
     default: 5000
-  eenable_incremental_diff_processing:
+  enable_incremental_diff_processing:
     description: "Enable incremental diff processing to handle large diffs by processing them in chunks."
     required: false
     default: true
+  debug:
+    description: "Enable debug mode for more verbose logging during action execution."
+    type: boolean
+    required: false
+    default: false
   # max_tokens:
   #   description: "Maximum number of tokens for the generated description."
   #   required: false
