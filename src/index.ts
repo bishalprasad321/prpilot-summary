@@ -13,13 +13,13 @@
  */
 
 import * as core from "@actions/core";
-import { Logger } from "./utils/logger";
-import { GitHubClient } from "./github/github-client";
-import { DiffProcessor } from "./diff/diff-processor";
-import { LLMClient } from "./llm/llm-client";
-import { StateManager } from "./state/state-manager";
-import { Formatter } from "./utils/formatter";
-import { LLMOutput } from "./utils/types";
+import { Logger } from "./utils/logger.js";
+import { GitHubClient } from "./github/github-client.js";
+import { DiffProcessor } from "./diff/diff-processor.js";
+import { LLMClient } from "./llm/llm-client.js";
+import { StateManager } from "./state/state-manager.js";
+import { Formatter } from "./utils/formatter.js";
+import { LLMOutput } from "./utils/types.js";
 
 function isValidLLMOutput(
   output: Record<string, unknown>
