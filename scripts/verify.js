@@ -7,13 +7,27 @@
  * or: node scripts/verify.js
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const checks = [];
 let passed = 0;
 let failed = 0;
+
+// Helper function to check if file exists
+function fileExists(filePath) {
+  return fs.existsSync(filePath);
+}
+
+// Helper function to check if directory exists
+function dirExists(dirPath) {
+  return fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory();
+}
 
 function log(level, message) {
   const icons = {
