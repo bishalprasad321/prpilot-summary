@@ -1,7 +1,6 @@
 {
   "name": "action-agentic-pr-doc",
   "version": "1.0.0",
-  "type": "module",
   "description": "Generate a pull request description using AI based on the changes made in the PR.",
   "author": "Bishal Prasad",
   "main": "dist/index.js",
