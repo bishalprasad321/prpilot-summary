@@ -17,7 +17,7 @@ inputs:
   max_diff_lines:
     description: "Maximum diff lines to process for generating the PR description. If the diff exceeds this limit, a summary will be generated instead."
     required: false
-    default: 5000
+    default: "5000"
   enable_incremental_diff_processing:
     description: "Enable incremental diff processing to handle large diffs by processing them in chunks."
     required: false
@@ -56,7 +56,7 @@ inputs:
   #   default: "Generate a pull request description based on the following changes:"
 
 runs:
-  using: "node16"
+  using: "node20"
   main: "dist/index.js"
 
 branding:
