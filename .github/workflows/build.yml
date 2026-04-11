@@ -108,7 +108,7 @@ jobs:
 
       - name: Generate PR Description
         id: ai_description
-        uses: bishalprasad321/action-agentic-pr-doc@develop
+        uses: ./
         with:
           github_token: ${{ secrets.GIT_API_TOKEN }}
           llm_api_key: ${{ secrets.LLM_API_KEY }}
