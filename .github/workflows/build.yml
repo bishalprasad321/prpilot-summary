@@ -111,8 +111,9 @@ jobs:
         uses: ./
         with:
           github_token: ${{ secrets.GIT_API_TOKEN }}
-          llm_api_key: ${{ secrets.LLM_API_KEY }}
-          ai_model: gpt-4o-mini
+          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+          llm_provider: gemini
+          ai_model: gemini-1.5-flash
           max_diff_lines: "5000"
           enable_incremental_diff_processing: "true"
           debug: ${{ github.event.inputs.debug_enabled || false }}

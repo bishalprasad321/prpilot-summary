@@ -28,12 +28,14 @@ jobs:
         uses: bishal-pdMSFT/action-agentic-pr-doc@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          llm_api_key: ${{ secrets.OPENAI_API_KEY }}
+          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+          llm_provider: gemini
+          ai_model: gemini-1.5-flash
 ```
 
 2. Add secrets to your repo:
    - Go to `Settings` → `Secrets and variables` → `Actions`
-   - Add `OPENAI_API_KEY` (get from [platform.openai.com](https://platform.openai.com/api-keys))
+   - Add `GEMINI_API_KEY` or another provider key and pass it to `llm_api_key`
 
 3. Create a PR and watch the magic happen! ✨
 
@@ -130,10 +132,13 @@ Change in your workflow:
 
 ```yaml
 with:
-  ai_model: gpt-4o-mini     # Default, fast & cheap
+  llm_provider: gemini
+  ai_model: gemini-1.5-flash
   # or
-  ai_model: gpt-4           # More capable
-  ai_model: gpt-4-turbo     # Balanced
+  llm_provider: openai
+  ai_model: gpt-4o-mini
+  # or let the action infer the provider from the model name
+  ai_model: gemini-1.5-flash
 ```
 
 ### Max Diff Size
@@ -157,11 +162,11 @@ with:
 
 | Problem | Solution |
 |---------|----------|
-| "Missing required inputs" | Add `OPENAI_API_KEY` to repo secrets |
+| "Missing required inputs" | Add your provider API key to repo secrets and pass it to `llm_api_key` |
 | "Action didn't run" | Check PR trigger: `types: [opened, synchronize]` |
 | "No changes to document" | PR diff might be empty or all files ignored |
 | "Diff too large" | Increase `max_diff_lines` or split PR |
-| "API error 401" | Check OpenAI key is valid |
+| "API error 401" | Check the provider key is valid and matches `llm_provider` |
 
 See [README.md](README.md#troubleshooting) for more.
 
@@ -178,7 +183,7 @@ See [README.md](README.md#troubleshooting) for more.
 
 ## Costs
 
-- **Per PR**: ~$0.005 (using gpt-4o-mini)
+- **Per PR**: Varies by provider and model
 - **1000 PRs**: ~$5
 - **10,000 PRs**: ~$50
 

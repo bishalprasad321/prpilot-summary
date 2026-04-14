@@ -41,6 +41,18 @@ interface GitHubEventPayload {
   };
 }
 
+type SupportedLLMProvider =
+  | "auto"
+  | "openai"
+  | "openai-compatible"
+  | "gemini";
+
+function isSupportedLLMProvider(
+  provider: string
+): provider is SupportedLLMProvider {
+  return ["auto", "openai", "openai-compatible", "gemini"].includes(provider);
+}
+
 // =============================================================================
 // INITIALIZATION
 // =============================================================================
@@ -61,6 +73,8 @@ async function main() {
     const inputs = {
       githubToken: core.getInput("github_token"),
       llmApiKey: core.getInput("llm_api_key"),
+      llmProvider: core.getInput("llm_provider") || "auto",
+      llmApiBaseUrl: core.getInput("llm_api_base_url"),
       aiModel: core.getInput("ai_model") || "gpt-4o-mini",
       maxDiffLines: parseInt(core.getInput("max_diff_lines")) || 5000,
       enableIncrementalDiffProcessing:
@@ -72,8 +86,18 @@ async function main() {
       throw new Error("Missing required inputs: github_token or llm_api_key");
     }
 
+    if (!isSupportedLLMProvider(inputs.llmProvider)) {
+      throw new Error(
+        `Unsupported llm_provider '${inputs.llmProvider}'. Expected one of: auto, openai, openai-compatible, gemini`
+      );
+    }
+
     logger.info(`✓ Inputs validated`);
+    logger.info(`  - LLM Provider: ${inputs.llmProvider}`);
     logger.info(`  - AI Model: ${inputs.aiModel}`);
+    logger.info(
+      `  - API Base URL: ${inputs.llmApiBaseUrl || "provider default"}`
+    );
     logger.info(`  - Max Diff Lines: ${inputs.maxDiffLines}`);
     logger.info(
       `  - Incremental Processing: ${inputs.enableIncrementalDiffProcessing}`
@@ -139,12 +163,17 @@ async function main() {
       repo: repoName,
     });
 
-    const llm = new LLMClient(inputs.llmApiKey, inputs.aiModel);
+    const llm = new LLMClient(inputs.llmApiKey, inputs.aiModel, {
+      provider: inputs.llmProvider,
+      baseUrl: inputs.llmApiBaseUrl,
+      debug: inputs.debug,
+    });
     const stateManager = new StateManager();
     const diffProcessor = new DiffProcessor();
     const formatter = new Formatter();
 
     logger.info(`✓ All clients initialized`);
+    logger.info(`  - Resolved LLM Provider: ${llm.getProvider()}`);
 
     // =========================================================================
     // STEP 4: FETCH PR METADATA

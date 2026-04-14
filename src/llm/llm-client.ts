@@ -1,9 +1,9 @@
 /**
- * LLM Client - Abstraction over LLM API (OpenAI/GPT by default)
+ * LLM Client - Abstraction over multiple LLM providers
  *
  * Responsibilities:
  * - Build system/user prompts
- * - Call LLM API
+ * - Call provider-specific APIs
  * - Parse and validate response
  * - Handle retries and errors
  */
@@ -25,16 +25,44 @@ interface OpenAIResponse {
   }>;
 }
 
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+  }>;
+  error?: {
+    message?: string;
+  };
+}
+
+type LLMProvider = "auto" | "openai" | "openai-compatible" | "gemini";
+
+interface LLMClientOptions {
+  provider?: LLMProvider;
+  baseUrl?: string;
+  debug?: boolean;
+}
+
 export class LLMClient {
   private apiKey: string;
   private model: string;
   private logger: Logger;
-  private apiEndpoint = "https://api.openai.com/v1/chat/completions";
+  private provider: Exclude<LLMProvider, "auto">;
+  private baseUrl?: string;
 
-  constructor(apiKey: string, model: string = "gpt-4o-mini") {
+  constructor(
+    apiKey: string,
+    model: string = "gpt-4o-mini",
+    options: LLMClientOptions = {}
+  ) {
     this.apiKey = apiKey;
     this.model = model;
-    this.logger = new Logger();
+    this.logger = new Logger(options.debug);
+    this.provider = this.resolveProvider(options.provider || "auto", model);
+    this.baseUrl = options.baseUrl?.trim() || undefined;
   }
 
   /**
@@ -109,6 +137,13 @@ Please generate a JSON response with the PR description details.`;
   }
 
   /**
+   * Get provider selected for the model
+   */
+  getProvider(): Exclude<LLMProvider, "auto"> {
+    return this.provider;
+  }
+
+  /**
    * Call LLM API and get response
    */
   async callLLM(messages: OpenAIMessage[]): Promise<LLMOutput> {
@@ -118,32 +153,13 @@ Please generate a JSON response with the PR description details.`;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         this.logger.debug(
-          `LLM call attempt ${attempt}/${maxRetries} using model: ${this.model}`
+          `LLM call attempt ${attempt}/${maxRetries} using provider: ${this.provider}, model: ${this.model}`
         );
 
-        const response = await fetch(this.apiEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: this.model,
-            messages,
-            temperature: 0.7,
-            max_tokens: 1000,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = (await response.json()) as Record<string, unknown>;
-          throw new Error(
-            `API error ${response.status}: ${JSON.stringify(errorData)}`
-          );
-        }
-
-        const data = (await response.json()) as OpenAIResponse;
-        const content = data.choices[0]?.message?.content;
+        const content =
+          this.provider === "gemini"
+            ? await this.callGemini(messages)
+            : await this.callOpenAICompatible(messages);
 
         if (!content) {
           throw new Error("Empty response from LLM");
@@ -151,7 +167,9 @@ Please generate a JSON response with the PR description details.`;
 
         // Parse JSON response
         try {
-          const parsed = JSON.parse(content) as LLMOutput;
+          const parsed = JSON.parse(
+            this.extractJsonObject(content)
+          ) as LLMOutput;
           this.logger.info(
             `✓ LLM succeeded on attempt ${attempt} (summary: ${parsed.summary.length} chars)`
           );
@@ -177,5 +195,125 @@ Please generate a JSON response with the PR description details.`;
     throw new Error(
       `LLM call failed after ${maxRetries} attempts: ${lastError?.message}`
     );
+  }
+
+  private resolveProvider(
+    provider: LLMProvider,
+    model: string
+  ): Exclude<LLMProvider, "auto"> {
+    if (provider !== "auto") {
+      return provider;
+    }
+
+    const normalizedModel = model.trim().toLowerCase();
+
+    if (normalizedModel.startsWith("gemini")) {
+      return "gemini";
+    }
+
+    if (
+      normalizedModel.startsWith("gpt") ||
+      normalizedModel.startsWith("o1") ||
+      normalizedModel.startsWith("o3") ||
+      normalizedModel.startsWith("o4")
+    ) {
+      return "openai";
+    }
+
+    return "openai-compatible";
+  }
+
+  private async callOpenAICompatible(
+    messages: OpenAIMessage[]
+  ): Promise<string> {
+    const apiEndpoint =
+      this.baseUrl || "https://api.openai.com/v1/chat/completions";
+
+    const response = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as Record<string, unknown>;
+      throw new Error(
+        `API error ${response.status}: ${JSON.stringify(errorData)}`
+      );
+    }
+
+    const data = (await response.json()) as OpenAIResponse;
+    return data.choices[0]?.message?.content || "";
+  }
+
+  private async callGemini(messages: OpenAIMessage[]): Promise<string> {
+    const systemPrompt =
+      messages.find((message) => message.role === "system")?.content || "";
+    const userPrompt =
+      messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content)
+        .join("\n\n") || "";
+
+    const apiEndpoint =
+      this.baseUrl ||
+      `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${encodeURIComponent(
+        this.apiKey
+      )}`;
+
+    const response = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: userPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as GeminiResponse;
+      throw new Error(
+        `API error ${response.status}: ${JSON.stringify(errorData)}`
+      );
+    }
+
+    const data = (await response.json()) as GeminiResponse;
+    return (
+      data.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || "")
+        .join("\n") || ""
+    );
+  }
+
+  private extractJsonObject(content: string): string {
+    const trimmed = content.trim();
+
+    if (trimmed.startsWith("```")) {
+      const fenced = trimmed.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+      return fenced.trim();
+    }
+
+    return trimmed;
   }
 }

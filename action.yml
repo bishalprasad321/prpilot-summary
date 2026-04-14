@@ -8,10 +8,18 @@ inputs:
     description: "GitHub token with permissions to read PR details and post comments."
     required: true
   llm_api_key:
-    description: "LLM API key for accessing the AI model to generate PR descriptions."
+    description: "LLM provider API key for generating PR descriptions (for example OpenAI, Gemini, or another compatible provider)."
     required: true
+  llm_provider:
+    description: "LLM provider to use. Supported values: auto, openai, openai-compatible, gemini."
+    required: false
+    default: "auto"
+  llm_api_base_url:
+    description: "Optional custom API endpoint. Useful for OpenAI-compatible providers or proxies."
+    required: false
+    default: ""
   ai_model:
-    description: "The AI model to use for generating the PR description (e.g., 'gpt-4')."
+    description: "The AI model to use for generating the PR description (e.g., 'gpt-4o-mini', 'gemini-1.5-flash', or another provider model)."
     required: false
     default: "gpt-4o-mini"
   max_diff_lines:

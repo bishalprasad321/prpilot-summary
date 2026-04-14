@@ -5,7 +5,7 @@ Automatically generate intelligent pull request descriptions using AI, analyzing
 ## Features
 
 ✨ **Key Features:**
-- 🤖 **AI-Powered Analysis** - Uses GPT-4 to analyze PR changes
+- 🤖 **AI-Powered Analysis** - Supports OpenAI, Gemini, and OpenAI-compatible models
 - 🔄 **Incremental Processing** - Handles large diffs efficiently
 - 🛡️ **Safe Updates** - Never overwrites developer notes
 - ⚡ **Idempotent** - Won't reprocess same commits
@@ -40,10 +40,11 @@ jobs:
         uses: bishal-pdMSFT/action-agentic-pr-doc@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          llm_api_key: ${{ secrets.OPENAI_API_KEY }}
-          ai_model: gpt-4o-mini
+          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+          llm_provider: gemini
+          ai_model: gemini-1.5-flash
           max_diff_lines: 5000
-          eenable_incremental_diff_processing: true
+          enable_incremental_diff_processing: true
 ```
 
 ### Inputs
@@ -51,10 +52,12 @@ jobs:
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `github_token` | ✅ | `${{ secrets.GITHUB_TOKEN }}` | GitHub token for PR access |
-| `llm_api_key` | ✅ | `${{ secrets.LLM_API_KEY }}` | OpenAI API key |
-| `ai_model` | ❌ | `gpt-4o-mini` | Model to use (e.g., `gpt-4`, `gpt-4-turbo`, `gpt-4o-mini`) |
+| `llm_api_key` | ✅ | `${{ secrets.LLM_API_KEY }}` | Provider API key such as OpenAI or Gemini |
+| `llm_provider` | ❌ | `auto` | Provider routing: `auto`, `openai`, `openai-compatible`, `gemini` |
+| `llm_api_base_url` | ❌ | `""` | Optional custom endpoint for OpenAI-compatible providers |
+| `ai_model` | ❌ | `gpt-4o-mini` | Model to use (e.g., `gpt-4o-mini`, `gemini-1.5-flash`, custom compatible model) |
 | `max_diff_lines` | ❌ | `5000` | Max diff lines to process before summarizing |
-| `eenable_incremental_diff_processing` | ❌ | `true` | Enable incremental processing on updates |
+| `enable_incremental_diff_processing` | ❌ | `true` | Enable incremental processing on updates |
 
 ## Local Development
 
@@ -102,7 +105,7 @@ src/
 ├── diff/
 │   └── diff-processor.ts       # Diff filtering, chunking, language detection
 ├── llm/
-│   └── llm-client.ts           # OpenAI API integration with retry logic
+│   └── llm-client.ts           # Multi-provider LLM integration with retry logic
 ├── state/
 │   └── state-manager.ts        # Idempotency state persistence
 └── utils/
@@ -143,7 +146,7 @@ src/
    - Removes lock files, node_modules, build artifacts, binaries
    - Detects 20+ programming languages
    - Prioritizes meaningful code files
-5. **LLM Analysis**: Sends filtered diff + commit messages to GPT
+5. **LLM Analysis**: Sends filtered diff + commit messages to the configured LLM provider
 6. **Safe Merge**: Updates only the AI section in PR body:
    - Preserves "Developer Notes" and other sections
    - Uses HTML markers: `<!-- AI:START -->...<!-- AI:END -->`
@@ -223,7 +226,8 @@ steps:
     uses: bishal-pdMSFT/action-agentic-pr-doc@v1
     with:
       github_token: ${{ secrets.GITHUB_TOKEN }}
-      llm_api_key: ${{ secrets.OPENAI_API_KEY }}
+      llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+      llm_provider: gemini
       debug: true  # Logs full context, prompts, responses
 ```
 
@@ -236,11 +240,21 @@ Debug logs include:
 ### Model Selection
 
 ```yaml
-# Use specific models
-ai_model: gpt-4              # Most capable, most expensive
-ai_model: gpt-4-turbo        # Fast, capable, moderate cost
-ai_model: gpt-4o-mini        # Fast, cheap (recommended)
-ai_model: gpt-3.5-turbo      # Very fast, very cheap
+# OpenAI
+llm_provider: openai
+ai_model: gpt-4o-mini
+
+# Gemini
+llm_provider: gemini
+ai_model: gemini-1.5-flash
+
+# Auto-detect from model prefix
+ai_model: gemini-1.5-flash
+
+# OpenAI-compatible endpoint
+llm_provider: openai-compatible
+llm_api_base_url: https://your-endpoint.example.com/v1/chat/completions
+ai_model: your-model-name
 ```
 
 ## API Keys
@@ -251,11 +265,11 @@ Uses default `${{ secrets.GITHUB_TOKEN }}` with permissions:
 - `pull-requests: write` - Update PR body
 - `contents: read` - Read PR changes
 
-### OpenAI API Key
+### LLM API Key
 
-1. Get key from [platform.openai.com](https://platform.openai.com/api-keys)
-2. Add to your repo as secret: `Settings` → `Secrets and variables` → `OPENAI_API_KEY`
-3. Reference in workflow: `${{ secrets.OPENAI_API_KEY }}`
+1. Create a provider key for the model you want to use.
+2. Add it to your repo secrets, for example `OPENAI_API_KEY` or `GEMINI_API_KEY`.
+3. Reference it through `llm_api_key` in your workflow.
 
 ## Contributing
 
@@ -277,7 +291,7 @@ git push
 | Issue | Solution |
 |-------|----------|
 | "Missing required inputs" | Check `github_token` and `llm_api_key` in secrets |
-| "LLM API error 401" | Verify OpenAI API key is valid and not expired |
+| "LLM API error 401" | Verify the configured provider API key is valid and matches the selected provider |
 | "No meaningful changes" | PR diff is probably empty or all files are ignored |
 | "State file not found" | First run; expected behavior |
 | "Diff exceeds max lines" | Increase `max_diff_lines` or split PR into smaller PRs |
