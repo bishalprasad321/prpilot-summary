@@ -32,10 +32,20 @@ interface GeminiResponse {
         text?: string;
       }>;
     };
+    finishReason?: string;
+    finishMessage?: string;
+    tokenCount?: number;
   }>;
   error?: {
     message?: string;
   };
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+    thoughtsTokenCount?: number;
+  };
+  modelVersion?: string;
 }
 
 type LLMProvider = "auto" | "openai" | "openai-compatible" | "gemini";
@@ -99,14 +109,20 @@ The description should:
 3. List key points that reviewers should know
 4. Be professional but accessible
 5. Focus on WHAT changed and WHY, not just the code
+6. Be brief and token-efficient
 
 Output MUST be valid JSON with this exact structure:
 {
-  "summary": "2-3 sentence summary of changes",
-  "keyPoints": ["point 1", "point 2", "point 3"],
-  "highlights": ["highlight 1", "highlight 2"],
+  "summary": "max 40 words",
+  "keyPoints": ["max 3 concise points"],
+  "highlights": ["max 2 concise highlights"],
   "breaking": false
-}`;
+}
+
+Return only the JSON object.
+Do not use markdown.
+Do not wrap the JSON in code fences.
+Stop immediately after the closing }.`;
 
     const userPrompt = `Please analyze this pull request and generate a description:
 
@@ -128,7 +144,7 @@ ${diffContent}
 
 ${repoMetadata.prDescription ? `**Developer Notes**:\n${repoMetadata.prDescription}` : ""}
 
-Please generate a JSON response with the PR description details.`;
+Please generate exactly one compact JSON object and nothing else.`;
 
     return [
       { role: "system", content: systemPrompt },
@@ -288,7 +304,7 @@ Please generate a JSON response with the PR description details.`;
         ],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 1000,
+          maxOutputTokens: 2048,
           responseMimeType: "application/json",
           responseSchema: {
             type: "OBJECT",
@@ -314,6 +330,9 @@ Please generate a JSON response with the PR description details.`;
               },
             },
           },
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
         },
       }),
     });
@@ -330,11 +349,45 @@ Please generate a JSON response with the PR description details.`;
     }
 
     const data = (await response.json()) as GeminiResponse;
-    return (
-      data.candidates?.[0]?.content?.parts
-        ?.map((part) => part.text || "")
-        .join("\n") || ""
+    const candidate = data.candidates?.[0];
+    const content =
+      candidate?.content?.parts?.map((part) => part.text || "").join("\n") ||
+      "";
+
+    if (!candidate) {
+      throw new Error("Gemini returned no candidates");
+    }
+
+    this.logger.debug(
+      `Gemini response metadata: ${JSON.stringify({
+        modelVersion: data.modelVersion,
+        finishReason: candidate.finishReason,
+        finishMessage: candidate.finishMessage,
+        tokenCount: candidate.tokenCount,
+        usageMetadata: data.usageMetadata,
+        contentLength: content.length,
+      })}`
     );
+
+    if (!content) {
+      throw new Error(
+        `Gemini returned empty content (finishReason: ${
+          candidate.finishReason || "unknown"
+        }, finishMessage: ${candidate.finishMessage || "none"})`
+      );
+    }
+
+    if (candidate.finishReason === "MAX_TOKENS") {
+      throw new Error(
+        `Gemini response was truncated before completion (finishReason: MAX_TOKENS, tokenCount: ${
+          candidate.tokenCount ?? "unknown"
+        }, thoughtsTokenCount: ${
+          data.usageMetadata?.thoughtsTokenCount ?? "unknown"
+        })`
+      );
+    }
+
+    return content;
   }
 
   private parseLLMOutput(content: string): LLMOutput {
