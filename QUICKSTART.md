@@ -30,7 +30,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           llm_api_key: ${{ secrets.GEMINI_API_KEY }}
           llm_provider: gemini
-          ai_model: gemini-1.5-flash
+          ai_model: gemini-2.5-flash
 ```
 
 2. Add secrets to your repo:
@@ -136,12 +136,12 @@ Change in your workflow:
 ```yaml
 with:
   llm_provider: gemini
-  ai_model: gemini-1.5-flash
+  ai_model: gemini-2.5-flash
   # or
   llm_provider: openai
   ai_model: gpt-4o-mini
   # or let the action infer the provider from the model name
-  ai_model: gemini-1.5-flash
+  ai_model: gemini-2.5-flash
 ```
 
 ### Max Diff Size

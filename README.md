@@ -43,7 +43,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           llm_api_key: ${{ secrets.GEMINI_API_KEY }}
           llm_provider: gemini
-          ai_model: gemini-1.5-flash
+          ai_model: gemini-2.5-flash
           max_diff_lines: 5000
           enable_incremental_diff_processing: true
 ```
@@ -56,7 +56,7 @@ jobs:
 | `llm_api_key`                        | ✅       | `${{ secrets.LLM_API_KEY }}`  | Provider API key such as OpenAI or Gemini                                       |
 | `llm_provider`                       | ❌       | `auto`                        | Provider routing: `auto`, `openai`, `openai-compatible`, `gemini`               |
 | `llm_api_base_url`                   | ❌       | `""`                          | Optional custom endpoint for OpenAI-compatible providers                        |
-| `ai_model`                           | ❌       | `gpt-4o-mini`                 | Model to use (e.g., `gpt-4o-mini`, `gemini-1.5-flash`, custom compatible model) |
+| `ai_model`                           | ❌       | `gpt-4o-mini`                 | Model to use (e.g., `gpt-4o-mini`, `gemini-2.5-flash`, custom compatible model) |
 | `max_diff_lines`                     | ❌       | `5000`                        | Max diff lines to process before summarizing                                    |
 | `enable_incremental_diff_processing` | ❌       | `true`                        | Enable incremental processing on updates                                        |
 
@@ -256,10 +256,10 @@ ai_model: gpt-4o-mini
 
 # Gemini
 llm_provider: gemini
-ai_model: gemini-1.5-flash
+ai_model: gemini-2.5-flash
 
 # Auto-detect from model prefix
-ai_model: gemini-1.5-flash
+ai_model: gemini-2.5-flash
 
 # OpenAI-compatible endpoint
 llm_provider: openai-compatible

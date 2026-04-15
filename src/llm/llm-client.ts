@@ -293,8 +293,12 @@ Please generate a JSON response with the PR description details.`;
 
     if (!response.ok) {
       const errorData = (await response.json()) as GeminiResponse;
+      const providerHint =
+        response.status === 404
+          ? " Try a current Gemini model such as gemini-2.5-flash or gemini-2.5-flash-lite."
+          : "";
       throw new Error(
-        `API error ${response.status}: ${JSON.stringify(errorData)}`
+        `API error ${response.status}: ${JSON.stringify(errorData)}${providerHint}`
       );
     }
 

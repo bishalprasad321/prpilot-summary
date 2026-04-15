@@ -88,6 +88,7 @@ jobs:
 
     permissions:
       pull-requests: write
+      issues: write
       contents: read
 
     steps:
@@ -110,10 +111,10 @@ jobs:
         id: ai_description
         uses: ./
         with:
-          github_token: ${{ secrets.GIT_API_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           llm_api_key: ${{ secrets.GEMINI_API_KEY }}
           llm_provider: gemini
-          ai_model: gemini-1.5-flash
+          ai_model: gemini-2.5-flash
           max_diff_lines: "5000"
           enable_incremental_diff_processing: "true"
           debug: ${{ github.event.inputs.debug_enabled || false }}
