@@ -167,9 +167,7 @@ Please generate a JSON response with the PR description details.`;
 
         // Parse JSON response
         try {
-          const parsed = JSON.parse(
-            this.extractJsonObject(content)
-          ) as LLMOutput;
+          const parsed = this.parseLLMOutput(content);
           this.logger.info(
             `✓ LLM succeeded on attempt ${attempt} (summary: ${parsed.summary.length} chars)`
           );
@@ -287,6 +285,7 @@ Please generate a JSON response with the PR description details.`;
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 1000,
+          responseMimeType: "application/json",
         },
       }),
     });
@@ -310,16 +309,48 @@ Please generate a JSON response with the PR description details.`;
     );
   }
 
-  private extractJsonObject(content: string): string {
+  private parseLLMOutput(content: string): LLMOutput {
+    const candidates = this.extractJsonCandidates(content);
+    let lastError: Error | null = null;
+
+    for (const candidate of candidates) {
+      try {
+        return JSON.parse(candidate) as LLMOutput;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
+    throw new Error(
+      `Failed to parse JSON from response: ${lastError?.message || "unknown parse error"}`
+    );
+  }
+
+  private extractJsonCandidates(content: string): string[] {
     const trimmed = content.trim();
+    const candidates = new Set<string>();
+
+    if (trimmed) {
+      candidates.add(trimmed);
+    }
 
     if (trimmed.startsWith("```")) {
       const fenced = trimmed
         .replace(/^```(?:json)?\s*/, "")
         .replace(/\s*```$/, "");
-      return fenced.trim();
+
+      if (fenced.trim()) {
+        candidates.add(fenced.trim());
+      }
     }
 
-    return trimmed;
+    const firstBrace = trimmed.indexOf("{");
+    const lastBrace = trimmed.lastIndexOf("}");
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      candidates.add(trimmed.slice(firstBrace, lastBrace + 1).trim());
+    }
+
+    return Array.from(candidates);
   }
 }
