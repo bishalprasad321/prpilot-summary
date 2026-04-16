@@ -35,14 +35,10 @@ Return STRICT JSON with no additional text:
 
 ```json
 {
-    "file": "relative/path/to/file.ext",
-    "summary": "Brief technical description of what changed",
-    "change_type": "feature|bugfix|refactor|test|config",
-    "key_changes": [
-        "Specific change 1",
-        "Specific change 2",
-        "Specific change 3"
-    ]
+  "file": "relative/path/to/file.ext",
+  "summary": "Brief technical description of what changed",
+  "change_type": "feature|bugfix|refactor|test|config",
+  "key_changes": ["Specific change 1", "Specific change 2", "Specific change 3"]
 }
 ```
 
@@ -51,16 +47,17 @@ Return STRICT JSON with no additional text:
 **Input**: Analyze the diff for `src/utils/auth.ts`
 
 **Output**:
+
 ```json
 {
-    "file": "src/utils/auth.ts",
-    "summary": "Refactored token validation logic to use async/await instead of Promises and added support for refresh token expiration checking.",
-    "change_type": "refactor",
-    "key_changes": [
-        "Converted validateToken() from Promise-based to async function",
-        "Added checkTokenExpiry() helper function",
-        "Updated error handling to use try/catch instead of .catch()",
-        "Extracted hardcoded expiry time into TOKEN_EXPIRY constant"
-    ]
+  "file": "src/utils/auth.ts",
+  "summary": "Refactored token validation logic to use async/await instead of Promises and added support for refresh token expiration checking.",
+  "change_type": "refactor",
+  "key_changes": [
+    "Converted validateToken() from Promise-based to async function",
+    "Added checkTokenExpiry() helper function",
+    "Updated error handling to use try/catch instead of .catch()",
+    "Extracted hardcoded expiry time into TOKEN_EXPIRY constant"
+  ]
 }
 ```

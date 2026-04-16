@@ -7,8 +7,8 @@
  * - Use template from TEMPLATE.md
  */
 
-import { Logger } from "../utils/logger";
-import { LLMOutput } from "../utils/types";
+import { Logger } from "../utils/logger.js";
+import { LLMOutput } from "../utils/types.js";
 
 const AI_SECTION_START = "<!-- AI:START -->";
 const AI_SECTION_END = "<!-- AI:END -->";

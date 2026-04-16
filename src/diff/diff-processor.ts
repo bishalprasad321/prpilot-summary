@@ -8,8 +8,8 @@
  * - Extract meaningful changes
  */
 
-import { Logger } from "../utils/logger";
-import { DiffChunk, FileChange } from "../utils/types";
+import { Logger } from "../utils/logger.js";
+import { DiffChunk, FileChange } from "../utils/types.js";
 
 export class DiffProcessor {
   private logger: Logger;

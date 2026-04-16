@@ -1,16 +1,16 @@
 /**
- * LLM Client - Abstraction over LLM API (OpenAI/GPT by default)
+ * LLM Client - Abstraction over multiple LLM providers
  *
  * Responsibilities:
  * - Build system/user prompts
- * - Call LLM API
+ * - Call provider-specific APIs
  * - Parse and validate response
  * - Handle retries and errors
  */
 
 import fetch from "node-fetch";
-import { Logger } from "../utils/logger";
-import { LLMContext, LLMOutput } from "../utils/types";
+import { Logger } from "../utils/logger.js";
+import { LLMContext, LLMOutput } from "../utils/types.js";
 
 interface OpenAIMessage {
   role: "system" | "user";
@@ -25,16 +25,54 @@ interface OpenAIResponse {
   }>;
 }
 
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+    finishReason?: string;
+    finishMessage?: string;
+    tokenCount?: number;
+  }>;
+  error?: {
+    message?: string;
+  };
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+    thoughtsTokenCount?: number;
+  };
+  modelVersion?: string;
+}
+
+type LLMProvider = "auto" | "openai" | "openai-compatible" | "gemini";
+
+interface LLMClientOptions {
+  provider?: LLMProvider;
+  baseUrl?: string;
+  debug?: boolean;
+}
+
 export class LLMClient {
   private apiKey: string;
   private model: string;
   private logger: Logger;
-  private apiEndpoint = "https://api.openai.com/v1/chat/completions";
+  private provider: Exclude<LLMProvider, "auto">;
+  private baseUrl?: string;
 
-  constructor(apiKey: string, model: string = "gpt-4o-mini") {
+  constructor(
+    apiKey: string,
+    model: string = "gpt-4o-mini",
+    options: LLMClientOptions = {}
+  ) {
     this.apiKey = apiKey;
     this.model = model;
-    this.logger = new Logger();
+    this.logger = new Logger(options.debug);
+    this.provider = this.resolveProvider(options.provider || "auto", model);
+    this.baseUrl = options.baseUrl?.trim() || undefined;
   }
 
   /**
@@ -71,14 +109,20 @@ The description should:
 3. List key points that reviewers should know
 4. Be professional but accessible
 5. Focus on WHAT changed and WHY, not just the code
+6. Be brief and token-efficient
 
 Output MUST be valid JSON with this exact structure:
 {
-  "summary": "2-3 sentence summary of changes",
-  "keyPoints": ["point 1", "point 2", "point 3"],
-  "highlights": ["highlight 1", "highlight 2"],
+  "summary": "max 40 words",
+  "keyPoints": ["max 3 concise points"],
+  "highlights": ["max 2 concise highlights"],
   "breaking": false
-}`;
+}
+
+Return only the JSON object.
+Do not use markdown.
+Do not wrap the JSON in code fences.
+Stop immediately after the closing }.`;
 
     const userPrompt = `Please analyze this pull request and generate a description:
 
@@ -100,12 +144,19 @@ ${diffContent}
 
 ${repoMetadata.prDescription ? `**Developer Notes**:\n${repoMetadata.prDescription}` : ""}
 
-Please generate a JSON response with the PR description details.`;
+Please generate exactly one compact JSON object and nothing else.`;
 
     return [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ];
+  }
+
+  /**
+   * Get provider selected for the model
+   */
+  getProvider(): Exclude<LLMProvider, "auto"> {
+    return this.provider;
   }
 
   /**
@@ -118,32 +169,13 @@ Please generate a JSON response with the PR description details.`;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         this.logger.debug(
-          `LLM call attempt ${attempt}/${maxRetries} using model: ${this.model}`
+          `LLM call attempt ${attempt}/${maxRetries} using provider: ${this.provider}, model: ${this.model}`
         );
 
-        const response = await fetch(this.apiEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: this.model,
-            messages,
-            temperature: 0.7,
-            max_tokens: 1000,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = (await response.json()) as Record<string, unknown>;
-          throw new Error(
-            `API error ${response.status}: ${JSON.stringify(errorData)}`
-          );
-        }
-
-        const data = (await response.json()) as OpenAIResponse;
-        const content = data.choices[0]?.message?.content;
+        const content =
+          this.provider === "gemini"
+            ? await this.callGemini(messages)
+            : await this.callOpenAICompatible(messages);
 
         if (!content) {
           throw new Error("Empty response from LLM");
@@ -151,14 +183,18 @@ Please generate a JSON response with the PR description details.`;
 
         // Parse JSON response
         try {
-          const parsed = JSON.parse(content) as LLMOutput;
+          const parsed = this.parseLLMOutput(content);
           this.logger.info(
             `✓ LLM succeeded on attempt ${attempt} (summary: ${parsed.summary.length} chars)`
           );
           return parsed;
-        } catch {
+        } catch (parseError) {
           throw new Error(
-            `Failed to parse LLM response as JSON: ${content.substring(0, 100)}`
+            `Failed to parse LLM response as JSON: ${
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError)
+            }. Response preview: ${content.substring(0, 160)}`
           );
         }
       } catch (error) {
@@ -177,5 +213,242 @@ Please generate a JSON response with the PR description details.`;
     throw new Error(
       `LLM call failed after ${maxRetries} attempts: ${lastError?.message}`
     );
+  }
+
+  private resolveProvider(
+    provider: LLMProvider,
+    model: string
+  ): Exclude<LLMProvider, "auto"> {
+    if (provider !== "auto") {
+      return provider;
+    }
+
+    const normalizedModel = model.trim().toLowerCase();
+
+    if (normalizedModel.startsWith("gemini")) {
+      return "gemini";
+    }
+
+    if (
+      normalizedModel.startsWith("gpt") ||
+      normalizedModel.startsWith("o1") ||
+      normalizedModel.startsWith("o3") ||
+      normalizedModel.startsWith("o4")
+    ) {
+      return "openai";
+    }
+
+    return "openai-compatible";
+  }
+
+  private async callOpenAICompatible(
+    messages: OpenAIMessage[]
+  ): Promise<string> {
+    const apiEndpoint =
+      this.baseUrl || "https://api.openai.com/v1/chat/completions";
+
+    const response = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as Record<string, unknown>;
+      throw new Error(
+        `API error ${response.status}: ${JSON.stringify(errorData)}`
+      );
+    }
+
+    const data = (await response.json()) as OpenAIResponse;
+    return data.choices[0]?.message?.content || "";
+  }
+
+  private async callGemini(messages: OpenAIMessage[]): Promise<string> {
+    const systemPrompt =
+      messages.find((message) => message.role === "system")?.content || "";
+    const userPrompt =
+      messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content)
+        .join("\n\n") || "";
+
+    const apiEndpoint =
+      this.baseUrl ||
+      `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${encodeURIComponent(
+        this.apiKey
+      )}`;
+
+    const response = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: userPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            required: ["summary", "keyPoints", "highlights", "breaking"],
+            properties: {
+              summary: {
+                type: "STRING",
+              },
+              keyPoints: {
+                type: "ARRAY",
+                items: {
+                  type: "STRING",
+                },
+              },
+              highlights: {
+                type: "ARRAY",
+                items: {
+                  type: "STRING",
+                },
+              },
+              breaking: {
+                type: "BOOLEAN",
+              },
+            },
+          },
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as GeminiResponse;
+      const providerHint =
+        response.status === 404
+          ? " Try a current Gemini model such as gemini-2.5-flash or gemini-2.5-flash-lite."
+          : "";
+      throw new Error(
+        `API error ${response.status}: ${JSON.stringify(errorData)}${providerHint}`
+      );
+    }
+
+    const data = (await response.json()) as GeminiResponse;
+    const candidate = data.candidates?.[0];
+    const content =
+      candidate?.content?.parts?.map((part) => part.text || "").join("\n") ||
+      "";
+
+    if (!candidate) {
+      throw new Error("Gemini returned no candidates");
+    }
+
+    this.logger.debug(
+      `Gemini response metadata: ${JSON.stringify({
+        modelVersion: data.modelVersion,
+        finishReason: candidate.finishReason,
+        finishMessage: candidate.finishMessage,
+        tokenCount: candidate.tokenCount,
+        usageMetadata: data.usageMetadata,
+        contentLength: content.length,
+      })}`
+    );
+
+    if (!content) {
+      throw new Error(
+        `Gemini returned empty content (finishReason: ${
+          candidate.finishReason || "unknown"
+        }, finishMessage: ${candidate.finishMessage || "none"})`
+      );
+    }
+
+    if (candidate.finishReason === "MAX_TOKENS") {
+      throw new Error(
+        `Gemini response was truncated before completion (finishReason: MAX_TOKENS, tokenCount: ${
+          candidate.tokenCount ?? "unknown"
+        }, thoughtsTokenCount: ${
+          data.usageMetadata?.thoughtsTokenCount ?? "unknown"
+        })`
+      );
+    }
+
+    return content;
+  }
+
+  private parseLLMOutput(content: string): LLMOutput {
+    const candidates = this.extractJsonCandidates(content);
+    let lastError: Error | null = null;
+
+    for (const candidate of candidates) {
+      try {
+        return JSON.parse(candidate) as LLMOutput;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        try {
+          return JSON.parse(this.repairJson(candidate)) as LLMOutput;
+        } catch (repairError) {
+          lastError =
+            repairError instanceof Error
+              ? repairError
+              : new Error(String(repairError));
+        }
+      }
+    }
+
+    throw new Error(
+      `Failed to parse JSON from response: ${lastError?.message || "unknown parse error"}`
+    );
+  }
+
+  private extractJsonCandidates(content: string): string[] {
+    const trimmed = content.trim();
+    const candidates = new Set<string>();
+
+    if (trimmed) {
+      candidates.add(trimmed);
+    }
+
+    if (trimmed.startsWith("```")) {
+      const fenced = trimmed
+        .replace(/^```(?:json)?\s*/, "")
+        .replace(/\s*```$/, "");
+
+      if (fenced.trim()) {
+        candidates.add(fenced.trim());
+      }
+    }
+
+    const firstBrace = trimmed.indexOf("{");
+    const lastBrace = trimmed.lastIndexOf("}");
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      candidates.add(trimmed.slice(firstBrace, lastBrace + 1).trim());
+    }
+
+    return Array.from(candidates);
+  }
+
+  private repairJson(content: string): string {
+    return content
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/, "")
+      .replace(/,\s*([}\]])/g, "$1")
+      .trim();
   }
 }
