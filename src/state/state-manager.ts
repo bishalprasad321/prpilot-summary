@@ -16,7 +16,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { Logger } from "../utils/logger";
+import { Logger } from "../utils/logger.js";
 
 const STATE_FILE = ".ai-pr-state.json";
 

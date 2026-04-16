@@ -2,13 +2,17 @@ name: Build, Test & Validate Action
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - master
+      - dev
   pull_request:
-    branches: [main, develop]
+    branches:
+      - master
+      - dev
   workflow_dispatch:
     inputs:
       debug_enabled:
-        description: 'Enable debug mode'
+        description: "Enable debug mode"
         required: false
         default: "false"
 
@@ -28,12 +32,12 @@ jobs:
       matrix:
         node-version: [16.x, 18.x, 20.x]
       fail-fast: false
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -52,7 +56,7 @@ jobs:
         run: npm run typecheck
 
       - name: Lint & format
-        if: matrix.node-version != '16.x' 
+        if: matrix.node-version != '16.x'
         run: |
           npm run lint
           npm run format:check
@@ -81,11 +85,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
-    
+
     permissions:
       pull-requests: write
+      issues: write
       contents: read
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -104,14 +109,15 @@ jobs:
 
       - name: Generate PR Description
         id: ai_description
-        uses: bishalprasad321/action-agentic-pr-doc@main
+        uses: ./
         with:
-          github_token: ${{ secrets.GIT_API_TOKEN }}
-          llm_api_key: ${{ secrets.LLM_API_KEY }}
-          ai_model: gpt-4o-mini
-          max_diff_lines: 5000
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+          llm_provider: gemini
+          ai_model: gemini-2.5-flash
+          max_diff_lines: "5000"
           enable_incremental_diff_processing: "true"
-          debug: ${{ github.event.inputs.debug_enabled || false }}
+          debug: ${{ inputs.debug_enabled || 'false' }}
         continue-on-error: true
 
       - name: Log action output
@@ -132,7 +138,7 @@ jobs:
   # security:
   #   name: Security Audit
   #   runs-on: ubuntu-latest
-    
+
   #   steps:
   #     - name: 📥 Checkout code
   #       uses: actions/checkout@v4
@@ -161,7 +167,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   needs: [build, test-action, security]
   #   if: always()
-    
+
   #   steps:
   #     - name: ✅ All checks passed
   #       if: ${{ needs.build.result == 'success' && (needs.test-action.result == 'success' || needs.test-action.result == 'skipped') && needs.security.result != 'failure' }}

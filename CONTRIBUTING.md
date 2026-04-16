@@ -11,6 +11,7 @@ Be respectful, inclusive, and constructive in all interactions.
 ### 1. Report Bugs
 
 Found a bug? Create an issue with:
+
 - **Title**: Clear, descriptive title
 - **Description**: What happened vs. expected
 - **Steps to Reproduce**: Exact steps to trigger the bug
@@ -20,6 +21,7 @@ Found a bug? Create an issue with:
 ### 2. Suggest Features
 
 Have an idea? Open an issue with label `enhancement`:
+
 - **Problem**: What problem does this solve?
 - **Proposed Solution**: How should it work?
 - **Alternative Approaches**: Other ways to solve it?
@@ -30,6 +32,7 @@ Have an idea? Open an issue with label `enhancement`:
 ### 4. Improve Documentation
 
 Documentation PRs are very welcome! Improve:
+
 - README.md (user-facing)
 - DEVELOPMENT.md (developer-facing)
 - Inline comments
@@ -116,6 +119,7 @@ git push origin fix/issue-name
 ### Checklist
 
 Before submitting, ensure:
+
 - [ ] Builds successfully: `npm run build`
 - [ ] Types check: `npm run typecheck`
 - [ ] Lint passes: `npm run lint` (or use `lint:fix`)
@@ -129,6 +133,7 @@ Before submitting, ensure:
 Format: `type(scope): description`
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `refactor`: Code reorganization (no behavior change)
@@ -138,6 +143,7 @@ Format: `type(scope): description`
 - `perf`: Performance improvements
 
 **Examples**:
+
 ```
 feat(github): add support for filtering by file type
 fix(llm): handle timeout errors gracefully
@@ -149,6 +155,7 @@ test(state-manager): add persistence tests
 ### PR Description
 
 Include:
+
 - **What**: What changes were made?
 - **Why**: Why are these changes needed?
 - **Testing**: How was this tested?
@@ -156,27 +163,34 @@ Include:
 - **Related Issues**: Fixes #123
 
 **Template**:
+
 ```markdown
 ## What
+
 Adds support for custom LLM providers (not just OpenAI)
 
 ## Why
+
 Users with Anthropic/other API keys could not use this action
 
 ## How
+
 - Extract LLM logic into interface
 - Create LLMProvider base class
 - Implement OpenAIProvider and AnthropicProvider
 - Add provider input to action.yml
 
 ## Testing
+
 - Manual test with Anthropic API key
 - Existing tests still pass
 
 ## Breaking Changes
+
 None
 
 ## Closes
+
 #456
 ```
 
@@ -185,6 +199,7 @@ None
 See [DEVELOPMENT.md](DEVELOPMENT.md#code-standards) for detailed standards.
 
 **Quick Reference**:
+
 - Use TypeScript strict mode (enabled by default)
 - No `any` types
 - Always specify return types
@@ -206,12 +221,12 @@ npm test
 Create `src/modules/module.test.ts`:
 
 ```typescript
-import { ModuleClass } from './module';
+import { ModuleClass } from "./module";
 
-describe('ModuleClass', () => {
-  it('should do something', () => {
+describe("ModuleClass", () => {
+  it("should do something", () => {
     const instance = new ModuleClass();
-    expect(instance.method()).toEqual('result');
+    expect(instance.method()).toEqual("result");
   });
 });
 ```
@@ -227,6 +242,7 @@ npm test -- --coverage
 ### Update README
 
 If your feature affects users:
+
 - Add to Features section
 - Update Inputs/Outputs tables
 - Add example usage
@@ -235,6 +251,7 @@ If your feature affects users:
 ### Update DEVELOPMENT.md
 
 If your changes affect developers:
+
 - Document the new module/pattern
 - Add troubleshooting section
 - Update architecture diagram if needed
@@ -271,6 +288,7 @@ Only maintainers can release, but here's how:
 ## Recognition
 
 Contributors are recognized in:
+
 - GitHub contributors page
 - ACKNOWLEDGMENTS.md (if created)
 - Release notes

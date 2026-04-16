@@ -15,6 +15,7 @@ build/
 *.swp
 *.swo
 *~
+.codex
 .DS_Store
 
 # Testing

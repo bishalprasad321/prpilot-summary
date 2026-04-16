@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial project setup with core modules
 - GitHub API integration (Octokit wrapper)
 - Diff processor with smart filtering and language detection
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-04-09
 
 ### Added
+
 - Initial stable release
 - Full 14-step orchestration for PR description generation
 - Multi-language code diff analysis
@@ -49,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete documentation
 
 ### Initial Features
+
 - ✅ AI-powered PR analysis using GPT
 - ✅ Incremental processing for efficiency
 - ✅ Safe updates (never overwrites developer notes)
@@ -63,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Future Roadmap
 
 ### Planned Features
+
 - [ ] Support for other LLMs (Anthropic, Cohere, local models)
 - [ ] Custom prompt templates
 - [ ] Webhook integration for external CI/CD
@@ -75,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Custom output formatting
 
 ### Under Consideration
+
 - [ ] Support for multiple PR description formats
 - [ ] A/B testing for different LLM models
 - [ ] Comment suppression rules
@@ -86,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - 2024-04-01
 
 ### Added
+
 - Project scaffolding
 - Initial architecture design
 - Core module interfaces

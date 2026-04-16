@@ -9,14 +9,14 @@
  */
 
 import { Octokit } from "@octokit/rest";
-import { Logger } from "../utils/logger";
+import { Logger } from "../utils/logger.js";
 import {
   PRMetadata,
   CommitInfo,
   FileChange,
   GitHubClientConfig,
   UpdatePROptions,
-} from "../utils/types";
+} from "../utils/types.js";
 
 export class GitHubClient {
   private octokit: Octokit;

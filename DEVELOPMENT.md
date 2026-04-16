@@ -105,6 +105,7 @@ logger.debug("Detailed information here");
 **Responsibility**: Coordinate all modules through 14 steps.
 
 **Key Pattern**: Each step logs entry/exit with emojis for visibility:
+
 ```typescript
 logger.info("📋 [STEP 1] Parsing inputs...");
 // ... do work ...
@@ -122,6 +123,7 @@ logger.info("✓ Inputs validated");
 **Uses**: Octokit (GitHub's official SDK)
 
 **Key Methods**:
+
 - `getPullRequest()` - Fetch PR metadata
 - `getChangedFiles()` - List changed files
 - `getCommits()` - Get commit history
@@ -137,6 +139,7 @@ logger.info("✓ Inputs validated");
 **Responsibility**: Make diff useful for LLM.
 
 **Key Methods**:
+
 - `processAndFilter()` - Main entry point
 - `parseDiff()` - Parse unified diff format
 - `shouldIgnoreFile()` - Check ignore patterns
@@ -144,6 +147,7 @@ logger.info("✓ Inputs validated");
 - `truncateChunks()` - Intelligently reduce size
 
 **Ignore List**:
+
 ```typescript
 /\.lock$/, /node_modules\/, /dist\/, /build\/, /* ... */
 ```
@@ -151,6 +155,7 @@ logger.info("✓ Inputs validated");
 Add new patterns to ignore more file types.
 
 **Language Detection**:
+
 ```typescript
 languageMap: {
   '.ts': 'typescript',
@@ -164,10 +169,12 @@ languageMap: {
 **Responsibility**: LLM operations.
 
 **Key Methods**:
+
 - `buildPrompt()` - Create OpenAI messages
 - `callLLM()` - Call OpenAI API with retry logic
 
 **Retry Logic**:
+
 ```
 Attempt 1: Immediate
 Attempt 2: Wait 1s
@@ -178,6 +185,7 @@ Attempt 4: Wait 4s
 **Error Handling**: All errors caught and logged. Never throws to orchestrator.
 
 **Extending**: To support other LLMs:
+
 ```typescript
 // Create new file: llm/anthropic-client.ts
 // Implement same interface
@@ -191,6 +199,7 @@ Attempt 4: Wait 4s
 **Storage**: `.ai-pr-state.json` (local file)
 
 **Data Structure**:
+
 ```typescript
 {
   lastProcessedSha: "abc123def456...",
@@ -200,6 +209,7 @@ Attempt 4: Wait 4s
 ```
 
 **Extending**: To support other storage:
+
 1. Create `github-artifacts-state-manager.ts` (uses GitHub artifacts)
 2. Create `dynamodb-state-manager.ts` (for distributed use)
 3. Implement same interface
@@ -210,11 +220,13 @@ Attempt 4: Wait 4s
 **Responsibility**: Markdown formatting and PR body updates.
 
 **Key Methods**:
+
 - `toMarkdown()` - JSON → Markdown
 - `replaceAISection()` - Smart section replacement
 - `getAISection()` - Extract AI section
 
 **Section Markers**:
+
 ```html
 <!-- AI:START -->
 ... content ...
@@ -222,6 +234,7 @@ Attempt 4: Wait 4s
 ```
 
 **Merge Logic**:
+
 1. If markers exist → replace between them
 2. If no markers → find "Developer Notes" section
 3. If no notes → find "Checklist" section
@@ -232,15 +245,17 @@ Attempt 4: Wait 4s
 **Responsibility**: Consistent, formatted logging.
 
 **Methods**:
+
 ```typescript
-logger.info("General info")
-logger.warn("Be careful")
-logger.error("Oh no!")
-logger.debug("Details (only in debug mode)")
-logger.success("Great!")
+logger.info("General info");
+logger.warn("Be careful");
+logger.error("Oh no!");
+logger.debug("Details (only in debug mode)");
+logger.success("Great!");
 ```
 
 **Pattern**: Include emoji + timestamp:
+
 ```
 [2024-04-09T10:15:30.123Z] ✅ Something happened
 ```
@@ -250,6 +265,7 @@ logger.success("Great!")
 All types in `src/utils/types.ts`.
 
 **Key Types**:
+
 - `PRMetadata` - PR title, body, SHAs
 - `CommitInfo` - Commit SHA, message, author, date
 - `FileChange` - File status, additions, deletions
@@ -264,11 +280,13 @@ All types in `src/utils/types.ts`.
 ### Manual Testing
 
 1. **Build**:
+
    ```bash
    npm run build
    ```
 
 2. **Create test environment file** `.env.test`:
+
    ```
    GITHUB_TOKEN=ghp_xxxxx
    LLM_API_KEY=sk-xxxxx
@@ -283,6 +301,7 @@ All types in `src/utils/types.ts`.
 ### CI/CD
 
 GitHub Actions workflow in `.github/workflows/build.yml`:
+
 - Runs on Node 16, 18, 20
 - Type checks, lints, builds
 - Verifies `dist/index.js` exists
@@ -312,6 +331,7 @@ function process(data: Data): string {
 ```
 
 **Return Types**: Always specify (except obvious):
+
 ```typescript
 // ✅ Good
 async function getValue(): Promise<string> {
@@ -368,6 +388,7 @@ try {
 ### Before PR
 
 1. **Code quality**:
+
    ```bash
    npm run typecheck
    npm run lint:fix
@@ -376,6 +397,7 @@ try {
    ```
 
 2. **No console.log**: Use logger
+
    ```typescript
    logger.info("message");
    ```
@@ -417,30 +439,35 @@ try {
 ## Troubleshooting
 
 ### "dist/index.js not found"
+
 ```bash
 npm run build
 # Check that tsconfig.json has correct outDir
 ```
 
 ### "Lint errors"
+
 ```bash
 npm run lint:fix
 # Not all can be auto-fixed; read output
 ```
 
 ### "Type errors"
+
 ```bash
 npm run typecheck
 # Fix types, don't use `any`
 ```
 
 ### "Tests failing"
+
 ```bash
 npm test -- --verbose
 # Check error messages, update test expectations
 ```
 
 ### "Action doesn't run"
+
 1. Verify `dist/index.js` exists (run `npm run build`)
 2. Check GitHub Actions logs
 3. Add debug logging: `debug: true` in action inputs
