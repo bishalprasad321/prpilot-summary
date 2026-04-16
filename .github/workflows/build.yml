@@ -3,12 +3,12 @@ name: Build, Test & Validate Action
 on:
   push:
     branches:
-      - main
-      - develop
+      - master
+      - dev
   pull_request:
     branches:
-      - main
-      - develop
+      - master
+      - dev
   workflow_dispatch:
     inputs:
       debug_enabled:
