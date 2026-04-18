@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "clean": "node scripts/clean.js",
-    "build": "npm run clean && tsc --project tsconfig.json && ncc build lib/index.js -o dist --source-map --license licenses.txt && node scripts/normalize-dist-permissions.js",
+    "build": "npm run clean && tsc --project tsconfig.json && ncc build lib/index.js -o dist --source-map && node scripts/normalize-dist-permissions.js",
     "watch": "tsc --watch --project tsconfig.json",
     "dev": "ts-node src/index.ts",
     "lint": "eslint src --ext .ts",
