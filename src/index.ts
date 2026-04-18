@@ -235,13 +235,38 @@ async function main() {
       eventAction === "synchronize"
     ) {
       logger.info(
-        `🟡 Incremental mode: fetching diff from ${lastProcessedSha.slice(0, 7)}`
+        `🟡 Attempting incremental mode: fetching diff from ${lastProcessedSha.slice(0, 7)}`
       );
-      diffContent = await gitHub.getDiffBetween(
+
+      // Fetch both incremental and full diff to compare sizes
+      const incrementalDiff = await gitHub.getDiffBetween(
         lastProcessedSha,
         currentHeadSha
       );
-      diffMode = "incremental";
+      const fullDiff = await gitHub.getDiff(prNumber);
+
+      const incrementalLineCount = incrementalDiff.split("\n").length;
+      const fullLineCount = fullDiff.split("\n").length;
+
+      // If incremental diff is >= 30% of full diff, use full diff for consistent context
+      const incrementalThreshold = fullLineCount * 0.3;
+
+      if (incrementalLineCount >= incrementalThreshold) {
+        logger.info(
+          `⚠️  Incremental diff is ${Math.round((incrementalLineCount / fullLineCount) * 100)}% of full diff`
+        );
+        logger.info(
+          `📊 Switching to full mode for complete PR context (${incrementalLineCount} >= ${Math.round(incrementalThreshold)} lines)`
+        );
+        diffContent = fullDiff;
+        diffMode = "full";
+      } else {
+        logger.info(
+          `✓ Incremental diff is manageable (${Math.round((incrementalLineCount / fullLineCount) * 100)}% of full diff)`
+        );
+        diffContent = incrementalDiff;
+        diffMode = "incremental";
+      }
     } else {
       logger.info(`🟢 Full mode: fetching diff from base to head`);
       diffContent = await gitHub.getDiff(prNumber);

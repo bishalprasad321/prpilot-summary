@@ -58,7 +58,7 @@ git clone https://github.com/YOUR_USERNAME/action-agentic-pr-doc.git
 cd action-agentic-pr-doc
 
 # 3. Add upstream remote
-git remote add upstream https://github.com/bishal-pdMSFT/action-agentic-pr-doc.git
+git remote add upstream https://github.com/bishalprasad321/action-agentic-pr-doc.git
 
 # 4. Install dependencies
 npm install
@@ -297,7 +297,7 @@ Contributors are recognized in:
 
 - 📖 Read DEVELOPMENT.md for technical details
 - 💬 Comment on the issue
-- 📧 Email: bishal@example.com
+- 📧 Email: bishalprasad321@gmail.com
 
 ## License
 

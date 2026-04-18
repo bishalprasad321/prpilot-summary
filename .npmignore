@@ -23,6 +23,7 @@ coverage/
 .git
 .gitignore
 .gitkeep
+lib/
 node_modules/
 
 # Misc

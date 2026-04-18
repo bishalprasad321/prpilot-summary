@@ -6,15 +6,15 @@ This guide covers setting up the project for development, architecture details, 
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/bishal-pdMSFT/action-agentic-pr-doc.git
+git clone https://github.com/bishalprasad321/action-agentic-pr-doc.git
 cd action-agentic-pr-doc
 npm install
 
-# 2. Build
+# 2. Build and package
 npm run build
 
 # 3. Verify
-npm run typecheck && npm run lint
+npm run verify && npm run lint
 ```
 
 ## Project Structure
@@ -35,7 +35,8 @@ action-agentic-pr-doc/
 │       ├── logger.ts            # Logging utilities
 │       ├── formatter.ts         # Markdown formatting
 │       └── types.ts             # TypeScript types
-├── dist/                        # Compiled JavaScript (generated)
+├── lib/                         # TypeScript compiler output (generated)
+├── dist/                        # Bundled action checked into git (generated)
 ├── .github/
 │   ├── agents/                  # Custom agents
 │   ├── workflows/               # CI/CD workflows
@@ -64,7 +65,7 @@ npm run lint:fix
 # 4. Format
 npm run format
 
-# 5. Build
+# 5. Build and package
 npm run build
 
 # 6. Test (if you added tests)
@@ -302,9 +303,10 @@ All types in `src/utils/types.ts`.
 
 GitHub Actions workflow in `.github/workflows/build.yml`:
 
-- Runs on Node 16, 18, 20
-- Type checks, lints, builds
-- Verifies `dist/index.js` exists
+- Runs on Node 20
+- Type checks, lints, and bundles with `@vercel/ncc`
+- Verifies `dist/index.js` and `dist/licenses.txt` exist
+- Fails if committed `dist/` is out of date
 
 ## Code Standards
 
@@ -442,7 +444,7 @@ try {
 
 ```bash
 npm run build
-# Check that tsconfig.json has correct outDir
+# Check that tsconfig.json outputs to lib/ before packaging
 ```
 
 ### "Lint errors"
@@ -487,4 +489,5 @@ npm test -- --verbose
 - [GitHub Actions Docs](https://docs.github.com/en/actions)
 - [Octokit SDK](https://github.com/octokit/rest.js)
 - [OpenAI API](https://platform.openai.com/docs/api-reference)
+- [Gemini API](https://ai.google.dev/api)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
