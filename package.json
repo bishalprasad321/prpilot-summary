@@ -5,8 +5,9 @@
   "author": "Bishal Prasad",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
+    "clean": "node scripts/clean.js",
+    "build": "npm run clean && tsc --project tsconfig.json && ncc build lib/index.js -o dist --source-map --license licenses.txt",
+    "watch": "tsc --watch --project tsconfig.json",
     "dev": "ts-node src/index.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
@@ -14,7 +15,9 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "verify": "node scripts/verify.js",
-    "prepublishOnly": "npm run build"
+    "all": "npm run lint && npm run format:check && npm run typecheck && npm run build",
+    "prepublishOnly": "npm run all",
+    "prepare": "husky install"
   },
   "keywords": [
     "github",
@@ -33,14 +36,16 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/node-fetch": "^2.6.0",
+    "@vercel/ncc": "^0.38.4",
     "eslint": "^9.0.0",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.0",
-    "typescript-eslint": "^8.58.1"
+    "typescript-eslint": "^8.58.1",
+    "husky": "^8.0.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   },
   "overrides": {
     "undici": "^6.24.0"

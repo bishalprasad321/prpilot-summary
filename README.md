@@ -68,7 +68,7 @@ jobs:
 # Install dependencies
 npm install
 
-# Build from TypeScript
+# Build and bundle the action
 npm run build
 
 # Watch mode (auto-recompile on changes)
@@ -78,7 +78,7 @@ npm run watch
 ### Commands
 
 ```bash
-# Build
+# Build and bundle into dist/
 npm run build
 
 # Type check
@@ -95,6 +95,16 @@ npm run format:check
 # Development with ts-node
 npm run dev
 ```
+
+### Packaging
+
+This project uses the standard TypeScript GitHub Action layout:
+
+- `src/` contains the TypeScript source
+- `lib/` contains intermediate `tsc` output
+- `dist/` contains the committed `@vercel/ncc` bundle used by `action.yml`
+
+Before tagging or publishing the action, run `npm run build` and commit the updated `dist/` files.
 
 ## Architecture
 

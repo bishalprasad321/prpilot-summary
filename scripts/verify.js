@@ -51,10 +51,10 @@ console.log("🔍 Verification Script");
 console.log("=".repeat(70) + "\n");
 
 // 1. Check Node version
-check("Node.js version >= 16", () => {
+check("Node.js version >= 20", () => {
   const version = process.version;
   const major = parseInt(version.slice(1).split(".")[0]);
-  if (major < 16) throw new Error(`Found ${version}, need 16+`);
+  if (major < 20) throw new Error(`Found ${version}, need 20+`);
 });
 
 // 2. Check npm version
@@ -73,7 +73,7 @@ check("node_modules exists", () => {
 });
 
 // 5. Check key dependencies
-const keyDeps = ["@actions/core", "@octokit/rest", "typescript"];
+const keyDeps = ["@actions/core", "@octokit/rest", "typescript", "@vercel/ncc"];
 
 keyDeps.forEach((dep) => {
   check(`Dependency: ${dep}`, () => {
@@ -123,9 +123,21 @@ check("TypeScript compiles", () => {
   }
 });
 
-// 9. Check dist directory has been built
-check("dist/index.js exists (build artifact)", () => {
+// 9. Check lib and dist artifacts exist
+check("lib/index.js exists (TypeScript build output)", () => {
+  if (!fs.existsSync("lib/index.js")) {
+    throw new Error("Run: npm run build");
+  }
+});
+
+check("dist/index.js exists (packaged action artifact)", () => {
   if (!fs.existsSync("dist/index.js")) {
+    throw new Error("Run: npm run build");
+  }
+});
+
+check("dist/licenses.txt exists (ncc bundle metadata)", () => {
+  if (!fs.existsSync("dist/licenses.txt")) {
     throw new Error("Run: npm run build");
   }
 });
@@ -152,6 +164,6 @@ if (failed === 0) {
   log("info", "Common fixes:");
   console.log("  1. Install dependencies: npm install");
   console.log("  2. Build project: npm run build");
-  console.log("  3. Check Node version: node --version (need 16+)");
+  console.log("  3. Check Node version: node --version (need 20+)");
   process.exit(1);
 }

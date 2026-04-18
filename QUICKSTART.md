@@ -45,7 +45,7 @@ jobs:
 
 ### Prerequisites
 
-- Node.js 16+
+- Node.js 20+
 - npm
 
 ### Setup (2 minutes)
@@ -58,17 +58,17 @@ cd action-agentic-pr-doc
 # 2. Install
 npm install
 
-# 3. Verify
-npm run verify
-
-# 4. Build
+# 3. Build and package the action
 npm run build
+
+# 4. Verify
+npm run verify
 ```
 
 ### Development Commands
 
 ```bash
-npm run build         # Compile TypeScript
+npm run build         # Compile TypeScript and bundle dist/
 npm run watch        # Auto-compile on changes
 npm run lint         # Check code quality
 npm run format       # Auto-format code
