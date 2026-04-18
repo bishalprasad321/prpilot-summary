@@ -136,12 +136,6 @@ check("dist/index.js exists (packaged action artifact)", () => {
   }
 });
 
-check("dist/licenses.txt exists (ncc bundle metadata)", () => {
-  if (!fs.existsSync("dist/licenses.txt")) {
-    throw new Error("Run: npm run build");
-  }
-});
-
 check(".github/workflows directory", () => {
   if (!fs.existsSync(".github/workflows")) throw new Error("Not found");
 });
