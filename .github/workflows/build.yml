@@ -14,7 +14,7 @@ on:
       debug_enabled:
         description: "Enable debug mode"
         required: false
-        default: "false"
+        default: "true"
 
 # Limit concurrent runs to prevent excessive API usage
 concurrency:
