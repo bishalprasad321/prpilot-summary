@@ -690,7 +690,7 @@ async function main() {
         // =========================================================================
         logger.info("🔄 [STEP 11] Safely updating PR description...");
         const existingBody = pr.body || "";
-        const updatedBody = formatter.replaceAISection(existingBody, formattedDescription);
+        const updatedBody = formatter.replaceAISection(existingBody, formattedDescription, files);
         logger.info(`✓ PR body prepared`);
         logger.info(`  - Existing body size: ${existingBody.length} bytes`);
         logger.info(`  - Updated body size: ${updatedBody.length} bytes`);
@@ -1242,7 +1242,9 @@ exports.StateManager = StateManager;
  * Responsibilities:
  * - Format LLM JSON output into readable Markdown
  * - Replace AI section in PR body while preserving other content
- * - Use template from TEMPLATE.md
+ * - Use template from TEMPLATE.md (including Developer Notes and Checklist)
+ * - Extract and preserve existing developer notes from PR body
+ * - Generate dynamic checklist based on file changes
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Formatter = void 0;
@@ -1254,12 +1256,110 @@ class Formatter {
         this.logger = new logger_js_1.Logger();
     }
     /**
+     * Extract raw PR description (anything before the template structure)
+     * Handles cases where user has already written a description
+     * Returns null if no raw description exists
+     */
+    extractRawPRDescription(prBody) {
+        if (!prBody || prBody.length === 0) {
+            return null;
+        }
+        // Check if body already has the standard template
+        if (prBody.includes("## 📌 Summary")) {
+            // Check if there's content BEFORE the Summary section
+            const beforeSummary = prBody.split("## 📌 Summary")[0].trim();
+            if (beforeSummary && beforeSummary.length > 0) {
+                return beforeSummary;
+            }
+            return null;
+        }
+        // If no template exists, entire body (excluding markers) is the description
+        if (!prBody.includes(AI_SECTION_START) &&
+            !prBody.includes("## 🧑‍💻 Developer Notes")) {
+            return prBody.trim();
+        }
+        return null;
+    }
+    /**
+     * Generate dynamic checklist based on files changed
+     * Analyzes file types and changes to suggest relevant checklist items
+     */
+    generateDynamicChecklist(files) {
+        const items = [];
+        // Check for test files
+        const hasTestChanges = files.some((f) => f.filename.includes("test") ||
+            f.filename.includes("spec") ||
+            f.filename.endsWith(".test.ts") ||
+            f.filename.endsWith(".spec.ts") ||
+            f.filename.endsWith("__tests__"));
+        // Check for documentation files
+        const hasDocChanges = files.some((f) => f.filename.endsWith(".md") ||
+            f.filename.includes("docs/") ||
+            f.filename.includes("README") ||
+            f.filename.endsWith("CHANGELOG.md"));
+        // Check for configuration changes
+        const hasConfigChanges = files.some((f) => f.filename.endsWith(".json") ||
+            f.filename.endsWith(".yml") ||
+            f.filename.endsWith(".yaml") ||
+            f.filename.endsWith(".toml"));
+        // Always include base items
+        items.push("- [x] Tests added" + (hasTestChanges ? "" : " (no test files detected)"));
+        items.push("- [x] Documentation updated" +
+            (hasDocChanges ? "" : " (no docs updated)"));
+        // Add config item if config changed
+        if (hasConfigChanges) {
+            items.push("- [ ] Configuration validated");
+        }
+        // Add performance check if large changes
+        const totalChanges = files.reduce((acc, f) => acc + f.additions + f.deletions, 0);
+        if (totalChanges > 500) {
+            items.push("- [ ] Performance reviewed");
+        }
+        // Add breaking changes item if deletions are significant
+        const totalDeletions = files.reduce((acc, f) => acc + f.deletions, 0);
+        if (totalDeletions > 100) {
+            items.push("- [ ] Breaking changes documented");
+        }
+        return items.join("\n");
+    }
+    /**
+     * Extract existing developer notes from PR body
+     * Captures any content between "## 🧑‍💻 Developer Notes" and the next section
+     * Returns empty content if no developer notes exist
+     */
+    extractExistingDeveloperNotes(prBody) {
+        const devNotesMatch = prBody.match(/## 🧑‍💻 Developer Notes\n([\s\S]*?)(?=\n##|$)/);
+        if (!devNotesMatch || !devNotesMatch[1]) {
+            return "- Add any extra context here";
+        }
+        // Trim the extracted content and preserve its structure
+        const content = devNotesMatch[1].trim();
+        // If the existing content is just the placeholder, replace it
+        if (content === "- Add any extra context here") {
+            return content;
+        }
+        return content;
+    }
+    /**
+     * Extract existing checklist from PR body
+     * Captures any content between "## ✅ Checklist" and end of body
+     * Returns default checklist if no checklist exists
+     */
+    extractExistingChecklist(prBody) {
+        const checklistMatch = prBody.match(/## ✅ Checklist\n([\s\S]*?)(?=\n##|$)/);
+        if (!checklistMatch || !checklistMatch[1]) {
+            return "- [ ] Tests added\n- [ ] Documentation updated";
+        }
+        return checklistMatch[1].trim();
+    }
+    /**
      * Convert LLM output (JSON) to formatted Markdown
-     * Ensures consistent structure with proper spacing and no nested headings
+     * Generates ONLY the AI-generated summary section (wrapped in markers separately)
+     * Developer Notes and Checklist are handled separately to preserve user content
      */
     toMarkdown(llmOutput) {
         const { summary, keyPoints, highlights, breaking } = llmOutput;
-        // Build markdown with proper structure and consistent spacing
+        // Build markdown sections for AI content only
         const sections = [];
         // Main heading
         sections.push(`## 🤖 AI Generated Summary`);
@@ -1293,91 +1393,126 @@ class Formatter {
     }
     /**
      * Replace AI section in PR body, or append if doesn't exist
+     * Also ensures complete template structure with Developer Notes and Checklist
      *
      * Preserves:
-     * - Existing developer notes
-     * - Other markdown sections (Summary, Checklist, etc.)
+     * - Existing developer notes and user context
+     * - Raw PR descriptions (moves them to Developer Notes)
+     * - Existing checklist items
+     * - Other markdown sections
      *
      * Logic:
-     * - If AI section exists: replace it
-     * - If no AI section: append after Summary section, or at end
+     * - Extract raw PR description if present and move to Developer Notes
+     * - If AI section exists: replace it and ensure template structure
+     * - If no AI section: create complete template with all sections
+     * - Generate dynamic checklist based on file changes
      */
-    replaceAISection(existingBody, newAIContent) {
+    replaceAISection(existingBody, newAIContent, files) {
+        // Extract raw description that user might have written
+        const rawDescription = this.extractRawPRDescription(existingBody);
+        // Extract existing developer notes
+        const existingDevNotes = this.extractExistingDeveloperNotes(existingBody);
+        // Merge raw description with existing dev notes
+        let mergedDevNotes = existingDevNotes;
+        if (rawDescription && rawDescription !== "- Add any extra context here") {
+            // Prepend raw description to dev notes
+            mergedDevNotes = `${rawDescription}\n\n${existingDevNotes}`.trim();
+        }
+        // Generate dynamic checklist based on files (or use existing)
+        const dynamicChecklist = files
+            ? this.generateDynamicChecklist(files)
+            : this.extractExistingChecklist(existingBody);
         if (!existingBody) {
-            // Empty body: wrap in markers and return
-            return `${AI_SECTION_START}\n${newAIContent}\n${AI_SECTION_END}`;
+            // Empty body: create complete template with default values
+            return this.createCompleteTemplate(newAIContent, mergedDevNotes || "- Add any extra context here", dynamicChecklist);
         }
         // Check if AI section already exists
         if (existingBody.includes(AI_SECTION_START) &&
             existingBody.includes(AI_SECTION_END)) {
             this.logger.debug("AI section exists, replacing...");
-            return this.replaceSection(existingBody, newAIContent);
+            return this.replaceSectionWithTemplate(existingBody, newAIContent, mergedDevNotes, dynamicChecklist);
         }
-        // No AI section: append it
-        this.logger.debug("No AI section found, appending...");
-        return this.appendAISection(existingBody, newAIContent);
+        // No AI section: create complete template
+        this.logger.debug("No AI section found, creating complete template...");
+        return this.createCompleteTemplate(newAIContent, mergedDevNotes, dynamicChecklist);
     }
     /**
-     * Replace existing AI section
-     * Ensures proper spacing around markers to prevent markdown degradation
+     * Create a complete PR body template with all sections
+     * Structure: Summary → AI Summary → Developer Notes → Checklist
      */
-    replaceSection(body, newContent) {
+    createCompleteTemplate(aiContent, devNotes, checklist) {
+        const sections = [];
+        // Summary section
+        sections.push(`## 📌 Summary`);
+        sections.push("");
+        // AI section with markers
+        sections.push(AI_SECTION_START);
+        sections.push(aiContent);
+        if (!aiContent.endsWith("\n")) {
+            sections.push("");
+        }
+        sections.push(AI_SECTION_END);
+        sections.push("");
+        // Separator
+        sections.push(`---`);
+        sections.push("");
+        // Developer Notes section
+        sections.push(`## 🧑‍💻 Developer Notes`);
+        sections.push("");
+        sections.push(devNotes);
+        sections.push("");
+        // Separator
+        sections.push(`---`);
+        sections.push("");
+        // Checklist section
+        sections.push(`## ✅ Checklist`);
+        sections.push("");
+        sections.push(checklist);
+        return sections.join("\n");
+    }
+    /**
+     * Replace existing AI section and rebuild template with preserved content
+     */
+    replaceSectionWithTemplate(body, newContent, devNotes, checklist) {
         const startIdx = body.indexOf(AI_SECTION_START);
         const endIdx = body.indexOf(AI_SECTION_END);
         if (startIdx === -1 || endIdx === -1) {
-            this.logger.warn("AI section markers not found, appending instead");
-            return this.appendAISection(body, newContent);
+            this.logger.warn("AI section markers not found, creating template instead");
+            return this.createCompleteTemplate(newContent, devNotes, checklist);
         }
+        // Get content before AI section (typically the ## 📌 Summary header)
         const before = body.substring(0, startIdx).trimEnd();
-        const after = body.substring(endIdx + AI_SECTION_END.length).trimStart();
-        // Ensure proper spacing: before section, markers with content, after section
-        let result = before;
-        // Add spacing before AI section if there was content before
+        // Rebuild the complete structure
+        const sections = [];
+        // Preserve content before AI section (Summary header)
         if (before.length > 0) {
-            result += "\n\n";
+            sections.push(before);
+            sections.push("");
         }
-        // Add AI section with markers and proper internal spacing
-        result += `${AI_SECTION_START}\n`;
-        result += newContent;
+        // AI section with markers and new content
+        sections.push(AI_SECTION_START);
+        sections.push(newContent);
         if (!newContent.endsWith("\n")) {
-            result += "\n";
+            sections.push("");
         }
-        result += AI_SECTION_END;
-        // Add spacing after AI section if there's content after
-        if (after.length > 0) {
-            result += "\n\n";
-            result += after;
-        }
-        return result;
-    }
-    /**
-     * Append AI section to body with proper spacing
-     *
-     * Strategy:
-     * 1. If there's a "## Developer Notes" section, insert before it
-     * 2. If there's a "## ✅ Checklist" section, insert before it
-     * 3. Otherwise, append at end
-     */
-    appendAISection(body, newContent) {
-        const aiSectionBlock = `${AI_SECTION_START}\n${newContent}${newContent.endsWith("\n") ? "" : "\n"}${AI_SECTION_END}`;
-        // Look for Developer Notes section
-        const devNotesMatch = body.match(/## 🧑‍💻 Developer Notes\n/);
-        if (devNotesMatch) {
-            const idx = body.indexOf(devNotesMatch[0]);
-            const before = body.substring(0, idx).trimEnd();
-            const after = body.substring(idx);
-            return `${before}\n\n${aiSectionBlock}\n\n${after}`;
-        }
-        // Look for Checklist section
-        const checklistMatch = body.match(/## ✅ Checklist\n/);
-        if (checklistMatch) {
-            const idx = body.indexOf(checklistMatch[0]);
-            const before = body.substring(0, idx).trimEnd();
-            const after = body.substring(idx);
-            return `${before}\n\n${aiSectionBlock}\n\n${after}`;
-        }
-        // Default: append at end with proper spacing
-        return `${body.trimEnd()}\n\n${aiSectionBlock}`;
+        sections.push(AI_SECTION_END);
+        sections.push("");
+        // Separator
+        sections.push(`---`);
+        sections.push("");
+        // Developer Notes section
+        sections.push(`## 🧑‍💻 Developer Notes`);
+        sections.push("");
+        sections.push(devNotes);
+        sections.push("");
+        // Separator
+        sections.push(`---`);
+        sections.push("");
+        // Checklist section
+        sections.push(`## ✅ Checklist`);
+        sections.push("");
+        sections.push(checklist);
+        return sections.join("\n");
     }
     /**
      * Extract only the AI section from a PR body

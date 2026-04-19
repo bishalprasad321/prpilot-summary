@@ -33,11 +33,22 @@ jobs:
           ai_model: gemini-2.5-flash
 ```
 
-2. Add secrets to your repo:
-   - Go to `Settings` → `Secrets and variables` → `Actions`
-   - Add `GEMINI_API_KEY` or another provider key and pass it to `llm_api_key`
+2. Get your Gemini API Key (free, no billing required):
+   - Visit [Google AI Studio](https://aistudio.google.com/apikey)
+   - Click **"Create API Key"** button
+   - Select **"Create new API key in new project"**
+   - Copy the generated key
 
-3. Create a PR and watch the magic happen! ✨
+3. Add secrets to your repo:
+   - Go to `Settings` → `Secrets and variables` → `Actions`
+   - Click **"New repository secret"**
+   - Name: `GEMINI_API_KEY`
+   - Value: Paste your Gemini API key from step 2
+   - Click **"Add secret"**
+
+4. Create a PR and watch the magic happen! ✨
+
+**Alternative Providers**: See [README.md](README.md#api-keys) for OpenAI or other LLM providers
 
 ---
 
@@ -85,18 +96,64 @@ When you create/update a PR:
 ```
 1. ✅ PR opened/updated
 2. 🤖 AI analyzes the changes
-3. 📝 Generates summary, key points, highlights
+3. � Generates complete PR template:
+   - Summary section (📌)
+   - AI Generated Summary (🤖) with insights
+   - Developer Notes (🧑‍💻) - your pre-written description is extracted here!
+   - Smart Checklist (✅) - auto-checked based on files changed
 4. 💾 Updates PR description automatically
 5. 👀 Reviewers get context instantly
 ```
 
+### Smart Features
+
+✨ **What makes it special:**
+
+- **If you write a description first**: It gets extracted and moved to "Developer Notes" (not lost!)
+- **Smart Checklist**:
+  - ✅ Tests added (if test files were modified)
+  - ✅ Documentation updated (if .md files were modified)
+  - ⬜ Configuration validated (if .json/.yml files were modified)
+  - ⬜ Performance reviewed (if changes are >500 lines)
+  - ⬜ Breaking changes documented (if deletions are >100 lines)
+- **Idempotent**: Safe to edit and re-run multiple times
+- **Content Preservation**: Your notes and checklist edits never get lost
+
 Example output:
 
 ```markdown
+## 📌 Summary
+
+<!-- AI:START -->
+
 ## 🤖 AI Generated Summary
 
 Refactored authentication to use async/await.
 Added token refresh mechanism with 5 min expiry.
+
+**Key Points:**
+
+- Improved performance by 40%
+- Better error handling
+
+**Highlights:**
+
+- Zero downtime deployment
+- Backward compatible
+<!-- AI:END -->
+
+---
+
+## 🧑‍💻 Developer Notes
+
+- Add any extra context here
+
+---
+
+## ✅ Checklist
+
+- [ ] Tests added
+- [ ] Documentation updated
 
 ### Key Points
 
@@ -181,7 +238,9 @@ Prices vary based on model and diff size.
 
 ## Support
 
-- 💬 [GitHub Discussions](https://github.com/bishalprasad321/prpilot-summary/discussions)
+- � [Full API Documentation](../docs/api.md)
+- 📋 [Template Format Guide](../docs/template.md)
+- �💬 [GitHub Discussions](https://github.com/bishalprasad321/prpilot-summary/discussions)
 - 🐛 [Report Issues](https://github.com/bishalprasad321/prpilot-summary/issues)
 - 📧 Email: bishalprasad321@gmail.com
 

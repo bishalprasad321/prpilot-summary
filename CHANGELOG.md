@@ -9,28 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial project setup with core modules
-- GitHub API integration (Octokit wrapper)
-- Diff processor with smart filtering and language detection
-- LLM client with OpenAI integration and retry logic
-- State manager for idempotency
-- Formatter for Markdown conversion and safe PR body updates
-- Logger utility with structured logging
-- Custom Diff Analyzer agent
-- Comprehensive documentation (README, DEVELOPMENT, CONTRIBUTING)
-- Build configuration (TypeScript, ESLint, Prettier)
-- GitHub Actions CI/CD workflow
-- Verification script for setup validation
+- **Smart Content Preservation**: Automatically extract and preserve user-written PR descriptions to Developer Notes section
+- **Dynamic Checklist Generation**: Auto-generate and intelligently check PR checklist items based on file changes:
+  - ✅ Tests added (when test files are modified)
+  - ✅ Documentation updated (when markdown/doc files are modified)
+  - ⬜ Configuration validated (when config files are modified)
+  - ⬜ Performance reviewed (for large diffs >500 changes)
+  - ⬜ Breaking changes documented (for large deletions >100 lines)
+- **Workflow Refactoring**: Separated monolithic GitHub Actions workflow into 3 purpose-driven workflows:
+  - `ci.yml`: Fast core quality checks (required, ~2-3 min)
+  - `action-test.yml`: Integration testing (optional, ~1-2 min)
+  - `security.yml`: Scheduled security audits (weekly, ~1-2 min)
+- Enhanced documentation with smart features explanation
+- Updated PR template with all checklist items
+- Job outputs pattern for secure secrets handling in GitHub Actions
 
 ### Changed
 
+- Improved `replaceAISection()` method to accept optional file list for dynamic checklist generation
+- Enhanced formatter with intelligent content extraction and merging
+- Updated documentation (README, DEVELOPMENT, API, Architecture, QUICKSTART) to reflect new features
+
 ### Deprecated
+
+- Monolithic GitHub Actions workflow pattern (use separate workflows by concern instead)
 
 ### Removed
 
 ### Fixed
 
+- VSCode type errors in formatter.test.ts by adding Jest type reference
+
 ### Security
+
+- Implemented job outputs pattern for secrets checking in GitHub Actions workflows (safer than environment variables)
 
 ---
 

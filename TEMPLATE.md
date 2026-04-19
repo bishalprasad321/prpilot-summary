@@ -5,6 +5,7 @@
 ## 🤖 AI Generated Summary
 
 - ...
+
 <!-- AI:END -->
 
 ---
@@ -19,3 +20,6 @@
 
 - [ ] Tests added
 - [ ] Documentation updated
+- [ ] Configuration validated
+- [ ] Performance reviewed
+- [ ] Breaking changes documented

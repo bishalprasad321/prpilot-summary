@@ -1,0 +1,98 @@
+name: Test Action - Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: "Enable debug mode"
+        required: false
+        default: "true"
+
+# Limit concurrent runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Test the Action in Realistic Scenario
+  # ============================================================================
+  # Runs the action on an actual PR to verify integration.
+  # Requires secrets: GEMINI_API_KEY
+  # Optional failure (doesn't block merge if action setup fails)
+  # ============================================================================
+  test-action:
+    name: Integration Test - Run prpilot-summary Action
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if GEMINI_API_KEY exists
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "has_key=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_key=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Execute prpilot-summary Action
+        id: ai_description
+        if: steps.check_secrets.outputs.has_key == 'true'
+        uses: ./
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+          llm_provider: gemini
+          ai_model: gemini-2.5-flash
+          max_diff_lines: "5000"
+          enable_incremental_diff_processing: "true"
+          debug: ${{ inputs.debug_enabled || 'false' }}
+        continue-on-error: true
+
+      - name: Log Action Execution Results
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "Action Execution Report"
+          echo "=========================================="
+          echo "Status: ${{ job.status }}"
+          echo "Outcome: ${{ steps.ai_description.outcome }}"
+          echo ""
+          if [ "${{ steps.ai_description.outcome }}" == "success" ]; then
+            echo "✅ Action executed successfully"
+            echo "PR description was generated and updated."
+          else
+            echo "⚠️ Action encountered an error"
+            echo "This may be expected if:"
+            echo "  - Secrets are not configured (GEMINI_API_KEY missing)"
+            echo "  - No meaningful changes in the PR"
+            echo "  - LLM API is temporarily unavailable"
+          fi
+          echo "=========================================="
+
+      - name: Comment if secrets not configured
+        if: failure() && steps.check_secrets.outputs.has_key == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **Action Test Failed: Missing Secrets**\n\n' +
+                    'The integration test requires `GEMINI_API_KEY` to be configured in repo secrets.\n' +
+                    'See [API Key Setup](../../README.md#api-keys) for instructions.'
+            })

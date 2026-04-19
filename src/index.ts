@@ -412,7 +412,8 @@ async function main() {
     const existingBody = pr.body || "";
     const updatedBody = formatter.replaceAISection(
       existingBody,
-      formattedDescription
+      formattedDescription,
+      files
     );
 
     logger.info(`✓ PR body prepared`);

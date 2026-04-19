@@ -218,13 +218,40 @@ Attempt 4: Wait 4s
 
 ### formatter.ts
 
-**Responsibility**: Markdown formatting and PR body updates.
+**Responsibility**: Markdown formatting and PR body updates with smart content preservation.
 
 **Key Methods**:
 
-- `toMarkdown()` - JSON → Markdown
-- `replaceAISection()` - Smart section replacement
-- `getAISection()` - Extract AI section
+- `toMarkdown()` - JSON → Markdown (AI content only)
+- `replaceAISection()` - Smart section replacement with content extraction
+- `getAISection()` - Extract AI section for validation
+- `extractRawPRDescription()` - Extract user-written descriptions (private)
+- `generateDynamicChecklist()` - Create smart checklists based on files (private)
+
+**Content Extraction Logic**:
+
+1. **Extract Raw Description** - If user wrote description before action ran:
+
+   ```typescript
+   "This fixes auth bug #42" → Moved to Developer Notes
+   ```
+
+2. **Generate Dynamic Checklist** - Based on file changes:
+
+   ```
+   Test files (*.test.ts, __tests__/) → ✅ Tests added (checked)
+   Docs (.md, docs/, README) → ✅ Documentation updated (checked)
+   Config files (.json, .yml) → ⬜ Configuration validated (added)
+   Large diffs (>500 changes) → ⬜ Performance reviewed (added)
+   Large deletions (>100 lines) → ⬜ Breaking changes documented (added)
+   ```
+
+3. **Merge Content** - Preserve all user content:
+   ```
+   Raw Description + Existing Dev Notes → Developer Notes section
+   Dynamic + User Edits → Checklist section
+   AI Content → AI section (between markers)
+   ```
 
 **Section Markers**:
 
@@ -236,10 +263,11 @@ Attempt 4: Wait 4s
 
 **Merge Logic**:
 
-1. If markers exist → replace between them
-2. If no markers → find "Developer Notes" section
-3. If no notes → find "Checklist" section
-4. Else → append at end
+1. Extract raw description from PR body
+2. If AI section exists → replace between markers
+3. If no AI section → create complete template
+4. Always preserve developer notes and checklist edits
+5. Generate checklist dynamically based on files changed
 
 ### logger.ts
 
@@ -280,24 +308,42 @@ All types in `src/utils/types.ts`.
 
 ### Manual Testing
 
-1. **Build**:
+#### Setup (Using Gemini - Free)
+
+1. **Get Gemini API Key** (recommended for development - free tier available):
+   - Go to [Google AI Studio](https://aistudio.google.com/apikey)
+   - Click "Create API Key"
+   - Select "Create new API key in new project"
+   - Copy the API key
+
+2. **Build**:
 
    ```bash
    npm run build
    ```
 
-2. **Create test environment file** `.env.test`:
+3. **Create test environment file** `.env.test`:
 
    ```
    GITHUB_TOKEN=ghp_xxxxx
-   LLM_API_KEY=sk-xxxxx
+   LLM_API_KEY=gsk_xxxxx  # Gemini API key
    GITHUB_REPOSITORY=owner/repo
+   LLM_PROVIDER=gemini
+   AI_MODEL=gemini-2.5-flash
    ```
 
-3. **Run locally** (if needed):
+4. **Run locally** (if needed):
    ```bash
    npm run dev
    ```
+
+#### Why Gemini for Development?
+
+- ✅ **Free tier available** - No billing account required
+- ✅ **No mandatory costs** - Test without credit card
+- ✅ **Same test coverage** - Produces high-quality summaries
+- ❌ **OpenAI requires billing** - Mandatory payment account setup
+- ❌ **No true free tier** - Will charge even small amounts
 
 ### CI/CD
 
@@ -484,10 +530,21 @@ npm test -- --verbose
 5. **Push**: `git push origin main --tags`
 6. **Create Release** on GitHub with changelog
 
+## Testing Notes
+
+### API Provider Strategy
+
+**This project uses Gemini API for all development and testing:**
+
+- ✅ Gemini (default) - Free tier, no billing required, excellent for PRs
+- ⚠️ OpenAI - Requires mandatory billing account (charges apply)
+
+Both providers are fully supported at runtime, but development uses Gemini to reduce friction for contributors.
+
 ## Further Reading
 
 - [GitHub Actions Docs](https://docs.github.com/en/actions)
 - [Octokit SDK](https://github.com/octokit/rest.js)
-- [OpenAI API](https://platform.openai.com/docs/api-reference)
-- [Gemini API](https://ai.google.dev/api)
+- [Gemini API Docs](https://ai.google.dev/api) - Used for development and testing
+- [OpenAI API Docs](https://platform.openai.com/docs/api-reference) - Alternative (requires billing)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)

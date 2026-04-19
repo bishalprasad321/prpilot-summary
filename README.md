@@ -9,8 +9,10 @@ Analyzes your code changes and produces meaningful summaries, key points, and in
 ✨ **Key Features:**
 
 - 🤖 **AI-Powered Analysis** - Supports OpenAI, Gemini, and OpenAI-compatible models
+- 📋 **Complete Template** - Generates professional PR structure with Summary, Developer Notes, and Checklist
+- 🛡️ **Smart Content Preservation** - Extracts your existing PR description and preserves it in Developer Notes
+- 📝 **Dynamic Checklist** - Auto-generates checklist items based on file types changed (tests, docs, configs, etc.)
 - 🔄 **Incremental Processing** - Handles large diffs efficiently
-- 🛡️ **Safe Updates** - Never overwrites developer notes
 - ⚡ **Idempotent** - Won't reprocess same commits
 - 🎯 **Smart Filtering** - Ignores noise (node_modules, build artifacts, lock files)
 - 🌍 **Multi-Language** - Detects 20+ programming languages
@@ -165,7 +167,9 @@ src/
    - Uses HTML markers: `<!-- AI:START -->...<!-- AI:END -->`
 7. **State Persistence**: Saves current SHA to prevent reprocessing
 
-### PR Body Template
+### PR Body Template & Content Preservation
+
+The action generates a complete, professional PR template with **intelligent content preservation**:
 
 ```markdown
 ## 📌 Summary
@@ -183,15 +187,55 @@ src/
 
 ## 🧑‍💻 Developer Notes
 
-- Any custom notes you want to add
+- Your pre-written description automatically preserved here ✅
+- Add any extra context
 
 ---
 
 ## ✅ Checklist
 
-- [ ] Tests added
-- [ ] Documentation updated
+- [x] Tests added (auto-marked if test files changed)
+- [x] Documentation updated (auto-marked if docs changed)
+- [ ] Configuration validated (added if config files changed)
+- [ ] Performance reviewed (added for large diffs >500 changes)
 ```
+
+**🛡️ Smart Content Preservation:**
+
+- **Pre-written descriptions** - Extracted from initial PR body and moved to Developer Notes ✅
+- **AI Section** (`<!-- AI:START -->...<!-- AI:END -->`) - Updated on each PR change
+- **Developer Notes** - Your content is **always preserved** ✅
+- **Dynamic Checklist** - Auto-generated based on file changes, never loses user edits ✅
+
+**How It Works:**
+
+1. **First Run (Empty Description)**:
+   - Creates template with defaults
+   - Generates checklist based on files changed
+
+2. **First Run (With User Description)**:
+   - Extracts your description
+   - Moves it to Developer Notes
+   - Generates smart checklist based on file types
+
+3. **User Edits**:
+   - Add/edit notes and checklist items freely
+   - Modify checklist items as needed
+
+4. **PR Updates**:
+   - Only AI section is regenerated
+   - Your description and edits stay intact
+   - Idempotent: safe to run multiple times
+
+**Dynamic Checklist Examples:**
+
+| File Changed                      | Auto-Generated Items                     |
+| --------------------------------- | ---------------------------------------- |
+| `__tests__/*.ts` or `*.test.ts`   | ✅ `Tests added` (checked)               |
+| `docs/`, `*.md`, `README`         | ✅ `Documentation updated` (checked)     |
+| `.json`, `.yml`, `.yaml`, `.toml` | ⬜ `Configuration validated` (added)     |
+| 500+ total changes                | ⬜ `Performance reviewed` (added)        |
+| 100+ lines deleted                | ⬜ `Breaking changes documented` (added) |
 
 ## Example Output
 
@@ -290,9 +334,38 @@ Uses default `${{ secrets.GITHUB_TOKEN }}` with permissions:
 
 ### LLM API Key
 
-1. Create a provider key for the model you want to use.
-2. Add it to your repo secrets, for example `OPENAI_API_KEY` or `GEMINI_API_KEY`.
-3. Reference it through `llm_api_key` in your workflow.
+#### Recommended: Gemini API (Free Tier Available)
+
+**This project is tested and developed using Gemini API.**
+
+1. **Get Gemini API Key** (free tier available, no billing required):
+   - Go to [Google AI Studio](https://aistudio.google.com/apikey)
+   - Click "Create API Key"
+   - Select "Create new API key in new project" (or existing project)
+   - Copy the generated API key
+   - Add to your repo secrets as `GEMINI_API_KEY`
+
+2. **In your workflow**, use:
+   ```yaml
+   llm_provider: gemini
+   ai_model: gemini-2.5-flash
+   llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+   ```
+
+#### Alternative: OpenAI API
+
+⚠️ **Note**: OpenAI API requires a **mandatory billing account** and will charge for API usage even if you only use the free trial initially. Development and testing is done with Gemini due to this cost consideration.
+
+1. Create an OpenAI account on [platform.openai.com](https://platform.openai.com)
+2. **Enable billing** on your account (required - will incur charges)
+3. Create an API key in your account settings
+4. Add it to your repo secrets as `OPENAI_API_KEY`
+5. Reference it in your workflow:
+   ```yaml
+   llm_provider: openai
+   ai_model: gpt-4o-mini
+   llm_api_key: ${{ secrets.OPENAI_API_KEY }}
+   ```
 
 ## Contributing
 

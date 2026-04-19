@@ -29,11 +29,15 @@ inputs:
   enable_incremental_diff_processing:
     description: "Enable incremental diff processing to handle large diffs by processing them in chunks."
     required: false
-    default: true
+    default: "true"
   debug:
     description: "Enable debug mode for more verbose logging during action execution."
     required: false
     default: "true"
+
+# TODO: Consider adding more advanced LLM configuration options in the future, such as maximum_tokens, temperature, top_p, 
+# frequency_penalty, presence_penalty, system_prompt, and user_prompt for greater customization of the generated PR descriptions.
+
   # max_tokens:
   #   description: "Maximum number of tokens for the generated description."
   #   required: false
