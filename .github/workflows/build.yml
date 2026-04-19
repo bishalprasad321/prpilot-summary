@@ -99,7 +99,7 @@ jobs:
 
       - name: Generate PR Description
         id: ai_description
-        uses: bishalprasad321/prpilot-summary@develop
+        uses: ./
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           llm_api_key: ${{ secrets.GEMINI_API_KEY }}

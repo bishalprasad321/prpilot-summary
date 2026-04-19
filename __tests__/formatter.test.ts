@@ -8,7 +8,7 @@ describe("Formatter", () => {
     formatter = new Formatter();
   });
 
-  it("formats LLM output into markdown with all sections", () => {
+  it("formats LLM output into markdown with AI sections", () => {
     const llmOutput: LLMOutput = {
       summary: "Updated the action build pipeline.",
       keyPoints: ["Added ncc bundling", "Committed dist artifacts"],
@@ -30,50 +30,123 @@ describe("Formatter", () => {
     );
   });
 
-  it("replaces an existing AI section and preserves surrounding content", () => {
+  it("creates complete template with all sections when no AI section exists", () => {
+    const llmOutput: LLMOutput = {
+      summary: "Updated the build pipeline.",
+      keyPoints: ["Added bundling"],
+      highlights: ["Safer marketplace consumption"],
+    };
+
+    const updated = formatter.replaceAISection("", formatter.toMarkdown(llmOutput));
+
+    expect(updated).toContain("## 📌 Summary");
+    expect(updated).toContain("<!-- AI:START -->");
+    expect(updated).toContain("## 🤖 AI Generated Summary");
+    expect(updated).toContain("<!-- AI:END -->");
+    expect(updated).toContain("## 🧑‍💻 Developer Notes");
+    expect(updated).toContain("## ✅ Checklist");
+    expect(updated).toContain("- Add any extra context here");
+    expect(updated).toContain("- [ ] Tests added");
+    expect(updated).toContain("- [ ] Documentation updated");
+  });
+
+  it("replaces existing AI section and preserves developer notes and checklist", () => {
     const body = [
-      "## Overview",
+      "## 📌 Summary",
       "",
       "<!-- AI:START -->",
       "Old summary",
       "<!-- AI:END -->",
       "",
-      "## 🧑‍💻 Developer Notes",
-      "- Keep this note",
-    ].join("\n");
-
-    const updated = formatter.replaceAISection(body, "New summary");
-
-    expect(updated).toContain("<!-- AI:START -->\nNew summary\n<!-- AI:END -->");
-    expect(updated).not.toContain("Old summary");
-    expect(updated).toContain("## 🧑‍💻 Developer Notes");
-    expect(updated).toContain("- Keep this note");
-  });
-
-  it("inserts a new AI section before developer notes when none exists", () => {
-    const body = [
-      "## Overview",
-      "Human-authored summary",
+      "---",
       "",
       "## 🧑‍💻 Developer Notes",
-      "- Existing note",
+      "- Keep this custom note",
+      "- Another point",
+      "",
+      "---",
+      "",
+      "## ✅ Checklist",
+      "- [x] Custom checklist item 1",
+      "- [ ] Custom checklist item 2",
     ].join("\n");
 
-    const updated = formatter.replaceAISection(body, "Generated summary");
+    const newAiContent = "New AI generated summary";
+    const updated = formatter.replaceAISection(body, newAiContent);
 
-    expect(updated.indexOf("<!-- AI:START -->")).toBeGreaterThan(-1);
-    expect(updated.indexOf("<!-- AI:START -->")).toBeLessThan(
-      updated.indexOf("## 🧑‍💻 Developer Notes")
-    );
-    // Ensure proper spacing is maintained
-    expect(updated).toContain("\n\n<!-- AI:START -->");
-    expect(updated).toContain("<!-- AI:END -->\n\n");
-    expect(formatter.getAISection(updated)).toBe("Generated summary");
+    expect(updated).toContain("## 📌 Summary");
+    expect(updated).toContain("<!-- AI:START -->\nNew AI generated summary");
+    expect(updated).not.toContain("Old summary");
+    expect(updated).toContain("## 🧑‍💻 Developer Notes");
+    expect(updated).toContain("- Keep this custom note");
+    expect(updated).toContain("- Another point");
+    expect(updated).toContain("## ✅ Checklist");
+    expect(updated).toContain("- [x] Custom checklist item 1");
+    expect(updated).toContain("- [ ] Custom checklist item 2");
+  });
+
+  it("preserves existing developer notes when replacing AI section", () => {
+    const body = [
+      "## 📌 Summary",
+      "",
+      "<!-- AI:START -->",
+      "Old content",
+      "<!-- AI:END -->",
+      "",
+      "## 🧑‍💻 Developer Notes",
+      "- User added note 1",
+      "- User added note 2",
+    ].join("\n");
+
+    const updated = formatter.replaceAISection(body, "New AI content");
+
+    expect(updated).toContain("## 🧑‍💻 Developer Notes");
+    expect(updated).toContain("- User added note 1");
+    expect(updated).toContain("- User added note 2");
+    expect(updated).not.toContain("Old content");
+  });
+
+  it("preserves existing checklist when replacing AI section", () => {
+    const body = [
+      "## 📌 Summary",
+      "",
+      "<!-- AI:START -->",
+      "Old content",
+      "<!-- AI:END -->",
+      "",
+      "## ✅ Checklist",
+      "- [x] Completed item",
+      "- [ ] Pending item",
+    ].join("\n");
+
+    const updated = formatter.replaceAISection(body, "New AI content");
+
+    expect(updated).toContain("## ✅ Checklist");
+    expect(updated).toContain("- [x] Completed item");
+    expect(updated).toContain("- [ ] Pending item");
   });
 
   it("returns null when no AI section is present", () => {
     expect(formatter.getAISection("## Overview\nNo generated content yet")).toBe(
       null
     );
+  });
+
+  it("extracts AI section correctly", () => {
+    const body = [
+      "## 📌 Summary",
+      "",
+      "<!-- AI:START -->",
+      "This is the AI generated content",
+      "Multiple lines of content",
+      "<!-- AI:END -->",
+      "",
+      "## 🧑‍💻 Developer Notes",
+    ].join("\n");
+
+    const aiSection = formatter.getAISection(body);
+
+    expect(aiSection).toContain("This is the AI generated content");
+    expect(aiSection).toContain("Multiple lines of content");
   });
 });

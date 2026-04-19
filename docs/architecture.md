@@ -124,18 +124,51 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 
 ### 5. **Formatter** (`src/utils/formatter.ts`)
 
-**Responsibility**: Convert LLM output to Markdown and manage PR sections
+**Responsibility**: Convert LLM output to Markdown and intelligently manage PR body sections
 
 **Key Methods**:
 - `toMarkdown(llmOutput)` - Convert JSON to Markdown
-- `replaceAISection(body, content)` - Replace/append AI section
-- `getAISection(body)` - Extract AI section
+- `replaceAISection(body, content)` - Replace/append AI section while preserving other content
+- `extractExistingDeveloperNotes(body)` - Preserve user's developer notes
+- `extractExistingChecklist(body)` - Preserve user's custom checklist items
+- `createCompleteTemplate(aiContent, devNotes, checklist)` - Generate full template
+- `replaceSectionWithTemplate(...)` - Update template with preserved content
 
 **Features**:
-- Preserves developer notes
-- Uses HTML comments as markers
-- Maintains consistent spacing
-- Handles edge cases (empty body, missing sections)
+- ✅ Preserves developer notes and checklist items
+- ✅ Uses HTML comments as markers (`<!-- AI:START -->...<!-- AI:END -->`)
+- ✅ Generates complete template on first run (4 sections)
+- ✅ Intelligent content extraction using regex patterns
+- ✅ Maintains consistent spacing and structure
+- ✅ Handles edge cases (empty body, missing sections)
+
+**PR Body Template Structure**:
+```markdown
+## 📌 Summary
+[User summary section]
+
+<!-- AI:START -->
+## 🤖 AI Generated Summary
+[AI content - gets updated]
+<!-- AI:END -->
+
+---
+
+## 🧑‍💻 Developer Notes
+[User content - ALWAYS preserved]
+
+---
+
+## ✅ Checklist
+[User items - NEVER overwritten]
+```
+
+**Content Preservation Logic**:
+- Extracts existing developer notes before update
+- Extracts existing checklist before update
+- Replaces only AI section between markers
+- Rebuilds template with preserved content
+- Results in zero data loss on updates
 
 ### 6. **State Manager** (`src/state/state-manager.ts`)
 
