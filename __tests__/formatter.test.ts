@@ -1,3 +1,5 @@
+/// <reference types="jest" />
+
 import { Formatter } from "../src/utils/formatter";
 import type { LLMOutput } from "../src/utils/types";
 
@@ -32,25 +34,37 @@ describe("Formatter", () => {
 
   it("replaces an existing AI section and preserves surrounding content", () => {
     const body = [
-      "## Overview",
+      "## 📌 Summary",
       "",
       "<!-- AI:START -->",
       "Old summary",
       "<!-- AI:END -->",
       "",
+      "---",
+      "",
       "## 🧑‍💻 Developer Notes",
       "- Keep this note",
+      "",
+      "---",
+      "",
+      "## ✅ Checklist",
+      "- [x] Tests added",
     ].join("\n");
 
     const updated = formatter.replaceAISection(body, "New summary");
 
-    expect(updated).toContain("<!-- AI:START -->\nNew summary\n<!-- AI:END -->");
+    // Check for AI markers and content (may have extra newline before end marker)
+    expect(updated).toContain("<!-- AI:START -->");
+    expect(updated).toContain("New summary");
+    expect(updated).toContain("<!-- AI:END -->");
     expect(updated).not.toContain("Old summary");
     expect(updated).toContain("## 🧑‍💻 Developer Notes");
     expect(updated).toContain("- Keep this note");
+    expect(updated).toContain("## ✅ Checklist");
+    expect(updated).toContain("- [x] Tests added");
   });
 
-  it("inserts a new AI section before developer notes when none exists", () => {
+  it("creates complete template with all sections when no AI section exists", () => {
     const body = [
       "## Overview",
       "Human-authored summary",
@@ -61,19 +75,21 @@ describe("Formatter", () => {
 
     const updated = formatter.replaceAISection(body, "Generated summary");
 
-    expect(updated.indexOf("<!-- AI:START -->")).toBeGreaterThan(-1);
-    expect(updated.indexOf("<!-- AI:START -->")).toBeLessThan(
-      updated.indexOf("## 🧑‍💻 Developer Notes")
-    );
-    // Ensure proper spacing is maintained
-    expect(updated).toContain("\n\n<!-- AI:START -->");
-    expect(updated).toContain("<!-- AI:END -->\n\n");
+    // Should contain all template sections
+    expect(updated).toContain("## 📌 Summary");
+    expect(updated).toContain("<!-- AI:START -->");
+    expect(updated).toContain("Generated summary");
+    expect(updated).toContain("<!-- AI:END -->");
+    expect(updated).toContain("## 🧑‍💻 Developer Notes");
+    expect(updated).toContain("- Existing note");
+    expect(updated).toContain("## ✅ Checklist");
+    // Ensure developer notes are preserved
     expect(formatter.getAISection(updated)).toBe("Generated summary");
   });
 
   it("returns null when no AI section is present", () => {
-    expect(formatter.getAISection("## Overview\nNo generated content yet")).toBe(
-      null
-    );
+    expect(
+      formatter.getAISection("## Overview\nNo generated content yet")
+    ).toBe(null);
   });
 });

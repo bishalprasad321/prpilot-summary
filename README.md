@@ -9,8 +9,9 @@ Analyzes your code changes and produces meaningful summaries, key points, and in
 ✨ **Key Features:**
 
 - 🤖 **AI-Powered Analysis** - Supports OpenAI, Gemini, and OpenAI-compatible models
+- � **Complete Template** - Generates professional PR structure with Summary, Developer Notes, and Checklist
+- 🛡️ **Content Preservation** - Never overwrites developer notes or custom checklist items
 - 🔄 **Incremental Processing** - Handles large diffs efficiently
-- 🛡️ **Safe Updates** - Never overwrites developer notes
 - ⚡ **Idempotent** - Won't reprocess same commits
 - 🎯 **Smart Filtering** - Ignores noise (node_modules, build artifacts, lock files)
 - 🌍 **Multi-Language** - Detects 20+ programming languages
@@ -167,6 +168,8 @@ src/
 
 ### PR Body Template
 
+The action generates a complete, professional PR template with **intelligent content preservation**:
+
 ```markdown
 ## 📌 Summary
 
@@ -183,7 +186,7 @@ src/
 
 ## 🧑‍💻 Developer Notes
 
-- Any custom notes you want to add
+- Add any extra context here (preserved on updates!)
 
 ---
 
@@ -192,6 +195,19 @@ src/
 - [ ] Tests added
 - [ ] Documentation updated
 ```
+
+**🛡️ Content Preservation:**
+
+- **AI Section** (`<!-- AI:START -->...<!-- AI:END -->`) - Updated on each PR change
+- **Developer Notes** - Your custom notes are **always preserved** ✅
+- **Checklist** - Custom items **never get overwritten** ✅
+
+**How It Works:**
+
+1. **First Run**: Creates complete template with defaults
+2. **User Edits**: Add/edit notes and checklist items freely
+3. **PR Updates**: Only AI section is regenerated, your content stays intact
+4. **Idempotent**: Safe to run multiple times without duplication
 
 ## Example Output
 

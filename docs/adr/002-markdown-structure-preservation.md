@@ -22,18 +22,25 @@ Remove nested heading hierarchy:
 
 ```markdown
 ❌ Before (problematic):
+
 ## 🤖 AI Generated Summary
+
 ### Summary
+
 Content here
+
 ### Key Points
+
 - Point 1
 
 ✅ After (clean):
+
 ## 🤖 AI Generated Summary
 
 Content here
 
 **Key Points:**
+
 - Point 1
 ```
 
@@ -50,6 +57,7 @@ return sections.join("\n");
 ```
 
 Benefits:
+
 - Guaranteed consistent spacing
 - Easy to maintain section order
 - Clear section boundaries
@@ -95,12 +103,12 @@ result += "\n\n"; // After marker
 ✅ Clean, professional appearance  
 ✅ Resistant to whitespace degradation  
 ✅ Easy to maintain and extend  
-✅ Consistent with Markdown best practices  
+✅ Consistent with Markdown best practices
 
 ### Negative
 
 ⚠️ Output format changed from nested to flat structure  
-⚠️ May require documentation updates for users expecting old format  
+⚠️ May require documentation updates for users expecting old format
 
 ## Migration Path
 

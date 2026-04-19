@@ -12,10 +12,12 @@
 GitHub Personal Access Token or `${{ secrets.GITHUB_TOKEN }}` for workflow context.
 
 **Permissions Required**:
+
 - `pull-requests: write` - Update PR descriptions
 - `contents: read` - Read PR content and diffs
 
 **Example**:
+
 ```yaml
 github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -28,6 +30,7 @@ github_token: ${{ secrets.GITHUB_TOKEN }}
 API key for your LLM provider (OpenAI, Gemini, etc.).
 
 **Example**:
+
 ```yaml
 llm_api_key: ${{ secrets.GEMINI_API_KEY }}
 ```
@@ -46,6 +49,7 @@ llm_api_key: ${{ secrets.GEMINI_API_KEY }}
 Specifies which LLM provider to use. `"auto"` attempts to detect based on model name.
 
 **Example**:
+
 ```yaml
 llm_provider: gemini
 ```
@@ -57,11 +61,13 @@ llm_provider: gemini
 **Default**: `""` (empty)
 
 Custom API endpoint URL. Useful for:
+
 - OpenAI-compatible providers (LiteLLM, Ollama, LocalAI)
 - Corporate proxies
 - Self-hosted LLM services
 
 **Example**:
+
 ```yaml
 llm_api_base_url: https://api.custom-provider.com/v1
 ```
@@ -73,11 +79,13 @@ llm_api_base_url: https://api.custom-provider.com/v1
 **Default**: `"gpt-4o-mini"`
 
 The AI model to use. Examples:
+
 - OpenAI: `"gpt-4o"`, `"gpt-4o-mini"`, `"gpt-3.5-turbo"`
 - Gemini: `"gemini-2.5-flash"`, `"gemini-2.0-flash"`, `"gemini-1.5-pro"`
 - Custom: Any model your endpoint supports
 
 **Example**:
+
 ```yaml
 ai_model: gemini-2.5-flash
 ```
@@ -91,6 +99,7 @@ ai_model: gemini-2.5-flash
 Maximum number of diff lines to process. If the diff exceeds this, the action will attempt to summarize large changes instead of processing line-by-line.
 
 **Example**:
+
 ```yaml
 max_diff_lines: 8000
 ```
@@ -102,11 +111,13 @@ max_diff_lines: 8000
 **Default**: `true`
 
 Enable intelligent incremental diff processing. When enabled:
+
 - On first push: processes full diff
 - On subsequent pushes: processes delta (new changes only)
 - If delta is large: automatically falls back to full diff for context
 
 **Example**:
+
 ```yaml
 enable_incremental_diff_processing: false
 ```
@@ -120,9 +131,94 @@ enable_incremental_diff_processing: false
 Enable debug mode for verbose logging. Helpful for troubleshooting.
 
 **Example**:
+
 ```yaml
 debug: "false"
 ```
+
+---
+
+## PR Template Format & Behavior
+
+### Generated Template
+
+The action generates a complete, professional PR body template with four sections:
+
+```markdown
+## 📌 Summary
+
+<!-- AI:START -->
+
+## 🤖 AI Generated Summary
+
+Summary of code changes and impact.
+
+**Key Points:**
+
+- Implemented feature X
+- Improved performance by Y%
+
+**Highlights:**
+
+- Backward compatible
+- Zero downtime deployment
+
+<!-- AI:END -->
+
+---
+
+## 🧑‍💻 Developer Notes
+
+- Add any extra context here
+
+---
+
+## ✅ Checklist
+
+- [ ] Tests added
+- [ ] Documentation updated
+```
+
+### Section Behavior
+
+| Section                     | AI Role          | User Role               | Preserved on Update |
+| --------------------------- | ---------------- | ----------------------- | ------------------- |
+| **📌 Summary**              | Not touched      | Optional custom summary | ✅ Yes              |
+| **🤖 AI Generated Summary** | Updated each run | Read-only               | ❌ No (regenerated) |
+| **🧑‍💻 Developer Notes**      | Not touched      | Add/edit notes freely   | ✅ **Always**       |
+| **✅ Checklist**            | Not touched      | Add/edit items freely   | ✅ **Always**       |
+
+### Content Preservation
+
+**How It Works:**
+
+1. **First PR** → Generates complete template with defaults
+2. **User Edits** → Adds notes to "Developer Notes" or custom checklist items
+3. **PR Updates** → Action:
+   - Extracts your developer notes before update
+   - Extracts your checklist items before update
+   - Regenerates only the AI section
+   - Rebuilds template with your content preserved ✅
+4. **Result** → Zero data loss, your content stays forever
+
+**Example:**
+
+```yaml
+Before Update:
+- Developer Notes: ["Note from reviewer", "TODO: verify with #42"]
+- Checklist: ["[x] Tests", "[ ] Security audit", "[ ] API docs"]
+
+After Update:
+- Developer Notes: ["Note from reviewer", "TODO: verify with #42"]  ← PRESERVED ✅
+- Checklist: ["[x] Tests", "[ ] Security audit", "[ ] API docs"]   ← PRESERVED ✅
+- AI Section: [NEW CONTENT]
+```
+
+### Idempotency
+
+- **Safe to run multiple times** → No duplicated content
+- **Only AI section changes** → Between markers `<!-- AI:START/END -->`
+- **Your content stays** → Developer notes and checklist untouched
 
 ---
 
@@ -192,10 +288,7 @@ stateManager.setLastProcessedSha(headSha);
 
 ```typescript
 class GitHubClient {
-  constructor(
-    githubToken: string,
-    config: GitHubClientConfig
-  );
+  constructor(githubToken: string, config: GitHubClientConfig);
 
   getPullRequest(prNumber: number): Promise<PRMetadata | null>;
   getChangedFiles(prNumber: number): Promise<FileChange[]>;
@@ -226,11 +319,7 @@ class DiffProcessor {
 
 ```typescript
 class LLMClient {
-  constructor(
-    apiKey: string,
-    model: string,
-    options?: LLMClientOptions
-  );
+  constructor(apiKey: string, model: string, options?: LLMClientOptions);
 
   buildPrompt(context: LLMContext): string;
   callLLM(prompt: string): Promise<Record<string, unknown>>;
@@ -320,11 +409,13 @@ The action inserts the following into your PR description:
 [AI-generated summary of changes]
 
 **Key Points:**
+
 - Key point 1
 - Key point 2
 - Key point 3
 
 **Highlights:**
+
 - Notable change 1
 - Notable change 2
 
@@ -343,6 +434,7 @@ The AI section is wrapped with HTML comments for reliable replacement:
 ```
 
 These markers:
+
 - Are invisible in rendered Markdown
 - Enable reliable section replacement
 - Preserve developer notes outside markers
@@ -362,12 +454,12 @@ The action implements graceful error handling:
 
 ### Common Issues
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| "Missing required inputs" | `github_token` or `llm_api_key` not set | Check secrets configuration |
-| "Invalid llm_provider" | Provider not supported | Use one of: `auto`, `openai`, `gemini`, `openai-compatible` |
-| "Failed to fetch PR" | Invalid PR number or token permissions | Verify PR number and token scopes |
-| "LLM execution failed" | API error or rate limit | Check API key, quota, and retry |
+| Error                     | Cause                                   | Solution                                                    |
+| ------------------------- | --------------------------------------- | ----------------------------------------------------------- |
+| "Missing required inputs" | `github_token` or `llm_api_key` not set | Check secrets configuration                                 |
+| "Invalid llm_provider"    | Provider not supported                  | Use one of: `auto`, `openai`, `gemini`, `openai-compatible` |
+| "Failed to fetch PR"      | Invalid PR number or token permissions  | Verify PR number and token scopes                           |
+| "LLM execution failed"    | API error or rate limit                 | Check API key, quota, and retry                             |
 
 ---
 
@@ -429,6 +521,7 @@ debug: "true"
 ### Check PR for Errors
 
 If the action fails:
+
 1. Check GitHub Actions log
 2. Look for error comment on PR
 3. Verify secrets are configured
@@ -437,6 +530,7 @@ If the action fails:
 ### Rate Limiting
 
 If you hit LLM API rate limits:
+
 - Increase `max_diff_lines` to trigger summarization sooner
 - Disable `enable_incremental_diff_processing` to reduce API calls
 - Check your provider's usage dashboard
@@ -444,6 +538,7 @@ If you hit LLM API rate limits:
 ### Large Diffs
 
 For repositories with large diffs:
+
 - Increase `max_diff_lines` threshold
 - The action will skip when diff exceeds threshold
 - Consider breaking up changes into smaller PRs

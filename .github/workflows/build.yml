@@ -83,7 +83,7 @@ jobs:
   # JOB 2: Test the Action (on a sample PR)
   # ============================================================================
   test-action:
-    name: Test Bundled Action
+    name: Test prpilot-summary Action
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
@@ -125,50 +125,26 @@ jobs:
   # ============================================================================
   # JOB 3: Security & Dependencies
   # ============================================================================
-  # security:
-  #   name: Security Audit
-  #   runs-on: ubuntu-latest
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: 🔧 Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: "20.x"
-  #         cache: "npm"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
 
-  #     - name: 📦 Install dependencies
-  #       run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-  #     - name: 🔒 Security audit
-  #       run: npm audit --audit-level=moderate
-  #       continue-on-error: true
+      - name: Security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
 
-  #     - name: 📊 Show dependencies with funding info
-  #       run: npm fund --json | head -20 || true
-
-  # # ============================================================================
-  # # JOB 4: Final Status
-  # # ============================================================================
-  # status:
-  #   name: Final Status Check
-  #   runs-on: ubuntu-latest
-  #   needs: [build, test-action, security]
-  #   if: always()
-
-  #   steps:
-  #     - name: ✅ All checks passed
-  #       if: ${{ needs.build.result == 'success' && (needs.test-action.result == 'success' || needs.test-action.result == 'skipped') && needs.security.result != 'failure' }}
-  #       run: |
-  #         echo "🎉 All workflows completed successfully!"
-  #         echo "✅ Build: PASSED"
-  #         echo "✅ Action Test: $([ '${{ needs.test-action.result }}' == 'skipped' ] && echo 'SKIPPED' || echo 'PASSED')"
-  #         echo "✅ Security: PASSED"
-
-  #     - name: ❌ Workflow failed
-  #       if: ${{ needs.build.result != 'success' }}
-  #       run: |
-  #         echo "❌ Build failed, see logs above"
-  #         exit 1
+      - name: Show dependencies with funding info
+        run: npm fund --json | head -20 || true

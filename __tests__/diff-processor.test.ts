@@ -55,7 +55,9 @@ describe("DiffProcessor", () => {
       status: "modified",
       language: "typescript",
     });
-    expect(chunks[0].content).toContain("diff --git a/src/index.ts b/src/index.ts");
+    expect(chunks[0].content).toContain(
+      "diff --git a/src/index.ts b/src/index.ts"
+    );
   });
 
   it("truncates chunks according to priority when diff exceeds max lines", () => {

@@ -85,7 +85,11 @@ When you create/update a PR:
 ```
 1. ✅ PR opened/updated
 2. 🤖 AI analyzes the changes
-3. 📝 Generates summary, key points, highlights
+3. � Generates complete PR template:
+   - Summary section (📌)
+   - AI Generated Summary (🤖) with key points & highlights
+   - Developer Notes (🧑‍💻) - your notes are preserved!
+   - Checklist (✅) - your items are preserved!
 4. 💾 Updates PR description automatically
 5. 👀 Reviewers get context instantly
 ```
@@ -93,10 +97,38 @@ When you create/update a PR:
 Example output:
 
 ```markdown
+## 📌 Summary
+
+<!-- AI:START -->
+
 ## 🤖 AI Generated Summary
 
 Refactored authentication to use async/await.
 Added token refresh mechanism with 5 min expiry.
+
+**Key Points:**
+
+- Improved performance by 40%
+- Better error handling
+
+**Highlights:**
+
+- Zero downtime deployment
+- Backward compatible
+<!-- AI:END -->
+
+---
+
+## 🧑‍💻 Developer Notes
+
+- Add any extra context here
+
+---
+
+## ✅ Checklist
+
+- [ ] Tests added
+- [ ] Documentation updated
 
 ### Key Points
 
@@ -181,7 +213,9 @@ Prices vary based on model and diff size.
 
 ## Support
 
-- 💬 [GitHub Discussions](https://github.com/bishalprasad321/prpilot-summary/discussions)
+- � [Full API Documentation](../docs/api.md)
+- 📋 [Template Format Guide](../docs/template.md)
+- �💬 [GitHub Discussions](https://github.com/bishalprasad321/prpilot-summary/discussions)
 - 🐛 [Report Issues](https://github.com/bishalprasad321/prpilot-summary/issues)
 - 📧 Email: bishalprasad321@gmail.com
 

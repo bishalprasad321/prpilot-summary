@@ -81,6 +81,7 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 **Responsibility**: Abstract GitHub API interactions using Octokit
 
 **Methods**:
+
 - `getPullRequest(prNumber)` - Fetch PR metadata
 - `getChangedFiles(prNumber)` - Get affected files
 - `getCommits(prNumber)` - Get commit history
@@ -94,12 +95,14 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 **Responsibility**: Intelligent diff filtering, chunking, and classification
 
 **Key Features**:
+
 - **Filtering**: Ignores binary files, build artifacts, node_modules
 - **Language Detection**: Identifies file types by extension
 - **Truncation**: Prioritizes modified files over added/removed
 - **Chunking**: Splits large diffs while preserving context
 
 **Ignore Patterns**:
+
 ```
 - .lock files (package-lock.json, yarn.lock)
 - Binary files (.png, .jpg, .pdf, etc.)
@@ -112,30 +115,75 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 **Responsibility**: Abstract LLM provider interactions
 
 **Supported Providers**:
+
 - OpenAI (GPT-4, GPT-3.5)
 - Gemini
 - OpenAI-compatible endpoints
 - Auto-detection
 
 **Methods**:
+
 - `buildPrompt(context)` - Create prompt from context
 - `callLLM(prompt)` - Execute LLM API call
 - `getProvider()` - Return resolved provider name
 
 ### 5. **Formatter** (`src/utils/formatter.ts`)
 
-**Responsibility**: Convert LLM output to Markdown and manage PR sections
+**Responsibility**: Convert LLM output to Markdown and intelligently manage PR body sections
 
 **Key Methods**:
+
 - `toMarkdown(llmOutput)` - Convert JSON to Markdown
-- `replaceAISection(body, content)` - Replace/append AI section
-- `getAISection(body)` - Extract AI section
+- `replaceAISection(body, content)` - Replace/append AI section while preserving other content
+- `extractExistingDeveloperNotes(body)` - Preserve user's developer notes
+- `extractExistingChecklist(body)` - Preserve user's custom checklist items
+- `createCompleteTemplate(aiContent, devNotes, checklist)` - Generate full template
+- `replaceSectionWithTemplate(...)` - Update template with preserved content
 
 **Features**:
-- Preserves developer notes
-- Uses HTML comments as markers
-- Maintains consistent spacing
-- Handles edge cases (empty body, missing sections)
+
+- ✅ Preserves developer notes and checklist items
+- ✅ Uses HTML comments as markers (`<!-- AI:START -->...<!-- AI:END -->`)
+- ✅ Generates complete template on first run (4 sections)
+- ✅ Intelligent content extraction using regex patterns
+- ✅ Maintains consistent spacing and structure
+- ✅ Handles edge cases (empty body, missing sections)
+
+**PR Body Template Structure**:
+
+```markdown
+## 📌 Summary
+
+[User summary section]
+
+<!-- AI:START -->
+
+## 🤖 AI Generated Summary
+
+[AI content - gets updated]
+
+<!-- AI:END -->
+
+---
+
+## 🧑‍💻 Developer Notes
+
+[User content - ALWAYS preserved]
+
+---
+
+## ✅ Checklist
+
+[User items - NEVER overwritten]
+```
+
+**Content Preservation Logic**:
+
+- Extracts existing developer notes before update
+- Extracts existing checklist before update
+- Replaces only AI section between markers
+- Rebuilds template with preserved content
+- Results in zero data loss on updates
 
 ### 6. **State Manager** (`src/state/state-manager.ts`)
 
@@ -144,6 +192,7 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 **Storage**: Local file (`.ai-pr-state.json`)
 
 **Tracks**:
+
 - Last processed commit SHA
 - Processing timestamp
 - PR number
