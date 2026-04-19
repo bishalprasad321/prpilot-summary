@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate AI PR Description
-        uses: bishal-pdMSFT/prpilot-summary@v1
+        uses: bishalprasad321/prpilot-summary@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           llm_api_key: ${{ secrets.GEMINI_API_KEY }}
@@ -244,7 +244,7 @@ Enable debug logging:
 ```yaml
 steps:
   - name: Generate AI PR Description
-    uses: bishal-pdMSFT/prpilot-summary@v1
+    uses: bishalprasad321/prpilot-summary@v1
     with:
       github_token: ${{ secrets.GITHUB_TOKEN }}
       llm_api_key: ${{ secrets.GEMINI_API_KEY }}

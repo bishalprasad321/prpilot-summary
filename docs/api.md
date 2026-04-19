@@ -390,7 +390,7 @@ jobs:
       contents: read
     steps:
       - name: Generate AI PR Description
-        uses: bishal-pdMSFT/prpilot-summary@v1
+        uses: bishalprasad321/prpilot-summary@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           llm_api_key: ${{ secrets.GEMINI_API_KEY }}
@@ -402,7 +402,7 @@ jobs:
 
 ```yaml
 - name: Generate with Custom LLM Provider
-  uses: bishal-pdMSFT/prpilot-summary@v1
+  uses: bishalprasad321/prpilot-summary@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
     llm_api_key: ${{ secrets.LITELLM_API_KEY }}

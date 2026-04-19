@@ -50,7 +50,7 @@ Documentation PRs are very welcome! Improve:
 
 ```bash
 # 1. Fork the repository
-# Go to https://github.com/bishal-pdMSFT/prpilot-summary
+# Go to https://github.com/bishalprasad321/prpilot-summary
 # Click "Fork"
 
 # 2. Clone your fork
