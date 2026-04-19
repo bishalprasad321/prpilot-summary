@@ -218,13 +218,40 @@ Attempt 4: Wait 4s
 
 ### formatter.ts
 
-**Responsibility**: Markdown formatting and PR body updates.
+**Responsibility**: Markdown formatting and PR body updates with smart content preservation.
 
 **Key Methods**:
 
-- `toMarkdown()` - JSON → Markdown
-- `replaceAISection()` - Smart section replacement
-- `getAISection()` - Extract AI section
+- `toMarkdown()` - JSON → Markdown (AI content only)
+- `replaceAISection()` - Smart section replacement with content extraction
+- `getAISection()` - Extract AI section for validation
+- `extractRawPRDescription()` - Extract user-written descriptions (private)
+- `generateDynamicChecklist()` - Create smart checklists based on files (private)
+
+**Content Extraction Logic**:
+
+1. **Extract Raw Description** - If user wrote description before action ran:
+
+   ```typescript
+   "This fixes auth bug #42" → Moved to Developer Notes
+   ```
+
+2. **Generate Dynamic Checklist** - Based on file changes:
+
+   ```
+   Test files (*.test.ts, __tests__/) → ✅ Tests added (checked)
+   Docs (.md, docs/, README) → ✅ Documentation updated (checked)
+   Config files (.json, .yml) → ⬜ Configuration validated (added)
+   Large diffs (>500 changes) → ⬜ Performance reviewed (added)
+   Large deletions (>100 lines) → ⬜ Breaking changes documented (added)
+   ```
+
+3. **Merge Content** - Preserve all user content:
+   ```
+   Raw Description + Existing Dev Notes → Developer Notes section
+   Dynamic + User Edits → Checklist section
+   AI Content → AI section (between markers)
+   ```
 
 **Section Markers**:
 
@@ -236,10 +263,11 @@ Attempt 4: Wait 4s
 
 **Merge Logic**:
 
-1. If markers exist → replace between them
-2. If no markers → find "Developer Notes" section
-3. If no notes → find "Checklist" section
-4. Else → append at end
+1. Extract raw description from PR body
+2. If AI section exists → replace between markers
+3. If no AI section → create complete template
+4. Always preserve developer notes and checklist edits
+5. Generate checklist dynamically based on files changed
 
 ### logger.ts
 

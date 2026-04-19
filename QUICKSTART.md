@@ -98,12 +98,26 @@ When you create/update a PR:
 2. 🤖 AI analyzes the changes
 3. � Generates complete PR template:
    - Summary section (📌)
-   - AI Generated Summary (🤖) with key points & highlights
-   - Developer Notes (🧑‍💻) - your notes are preserved!
-   - Checklist (✅) - your items are preserved!
+   - AI Generated Summary (🤖) with insights
+   - Developer Notes (🧑‍💻) - your pre-written description is extracted here!
+   - Smart Checklist (✅) - auto-checked based on files changed
 4. 💾 Updates PR description automatically
 5. 👀 Reviewers get context instantly
 ```
+
+### Smart Features
+
+✨ **What makes it special:**
+
+- **If you write a description first**: It gets extracted and moved to "Developer Notes" (not lost!)
+- **Smart Checklist**:
+  - ✅ Tests added (if test files were modified)
+  - ✅ Documentation updated (if .md files were modified)
+  - ⬜ Configuration validated (if .json/.yml files were modified)
+  - ⬜ Performance reviewed (if changes are >500 lines)
+  - ⬜ Breaking changes documented (if deletions are >100 lines)
+- **Idempotent**: Safe to edit and re-run multiple times
+- **Content Preservation**: Your notes and checklist edits never get lost
 
 Example output:
 

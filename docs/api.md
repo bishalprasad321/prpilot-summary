@@ -375,9 +375,35 @@ class LLMClient {
 ```typescript
 class Formatter {
   toMarkdown(llmOutput: LLMOutput): string;
-  replaceAISection(existingBody: string, newAIContent: string): string;
+
+  // Smart content preservation with optional file data
+  replaceAISection(
+    existingBody: string,
+    newAIContent: string,
+    files?: FileChange[] // Optional: file changes for dynamic checklist
+  ): string;
+
   getAISection(body: string): string | null;
 }
+```
+
+**Smart Features** (when `files` parameter provided):
+
+- 📝 Extracts pre-written PR descriptions and moves to Developer Notes
+- ✅ Generates dynamic checklist based on file types changed
+- 🛡️ Preserves all user content (dev notes, checklist edits)
+- 🔄 Only regenerates AI section on PR updates
+
+**Dynamic Checklist Examples:**
+
+```typescript
+// Files changed: __tests__/auth.test.ts, docs/README.md
+formatter.replaceAISection(body, aiContent, files);
+
+// Generates checklist:
+// - [x] Tests added       (detected test files)
+// - [x] Documentation updated (detected .md files)
+// - [ ] Configuration validated (only if .json/.yml changed)
 ```
 
 #### StateManager

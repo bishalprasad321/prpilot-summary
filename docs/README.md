@@ -25,15 +25,26 @@ Generates a professional template with:
 
 - **Summary** section for overview
 - **AI Generated Summary** with key points and highlights
-- **Developer Notes** - your custom notes are always preserved ✅
-- **Checklist** - your custom items never get overwritten ✅
+- **Developer Notes** - user descriptions are extracted and preserved ✅
+- **Smart Checklist** - auto-generated based on file changes ✅
 
-### Content Preservation
+### Smart Content Preservation
 
-- User-added notes are extracted and preserved on every update
-- Custom checklist items stay intact across PR changes
-- Only the AI section gets regenerated
+- **Extracts user descriptions** - If you write a description before action runs, it's saved to Developer Notes
+- **Preserves all edits** - Custom checklist items and notes stay intact across PR changes
+- **Intelligent merging** - Raw descriptions are merged with existing dev notes
+- **Only AI section regenerates** - Other content is never touched
 - **Zero data loss** guaranteed
+
+### Dynamic Checklist
+
+Automatically generates checklist items based on files changed:
+
+- ✅ Tests added (detected test files like `__tests__/`, `*.test.ts`)
+- ✅ Documentation updated (detected `.md`, `docs/`, `README` files)
+- ⬜ Configuration validated (detected `.json`, `.yml`, `.yaml`, `.toml` files)
+- ⬜ Performance reviewed (added for large diffs >500 changes)
+- ⬜ Breaking changes documented (added for large deletions >100 lines)
 
 ### Intelligent Processing
 

@@ -6,10 +6,11 @@
  * - Replace AI section in PR body while preserving other content
  * - Use template from TEMPLATE.md (including Developer Notes and Checklist)
  * - Extract and preserve existing developer notes from PR body
+ * - Generate dynamic checklist based on file changes
  */
 
 import { Logger } from "../utils/logger.js";
-import { LLMOutput } from "../utils/types.js";
+import { LLMOutput, FileChange } from "../utils/types.js";
 
 const AI_SECTION_START = "<!-- AI:START -->";
 const AI_SECTION_END = "<!-- AI:END -->";
@@ -19,6 +20,104 @@ export class Formatter {
 
   constructor() {
     this.logger = new Logger();
+  }
+
+  /**
+   * Extract raw PR description (anything before the template structure)
+   * Handles cases where user has already written a description
+   * Returns null if no raw description exists
+   */
+  private extractRawPRDescription(prBody: string): string | null {
+    if (!prBody || prBody.length === 0) {
+      return null;
+    }
+
+    // Check if body already has the standard template
+    if (prBody.includes("## 📌 Summary")) {
+      // Check if there's content BEFORE the Summary section
+      const beforeSummary = prBody.split("## 📌 Summary")[0].trim();
+      if (beforeSummary && beforeSummary.length > 0) {
+        return beforeSummary;
+      }
+      return null;
+    }
+
+    // If no template exists, entire body (excluding markers) is the description
+    if (
+      !prBody.includes(AI_SECTION_START) &&
+      !prBody.includes("## 🧑‍💻 Developer Notes")
+    ) {
+      return prBody.trim();
+    }
+
+    return null;
+  }
+
+  /**
+   * Generate dynamic checklist based on files changed
+   * Analyzes file types and changes to suggest relevant checklist items
+   */
+  private generateDynamicChecklist(files: FileChange[]): string {
+    const items: string[] = [];
+
+    // Check for test files
+    const hasTestChanges = files.some(
+      (f) =>
+        f.filename.includes("test") ||
+        f.filename.includes("spec") ||
+        f.filename.endsWith(".test.ts") ||
+        f.filename.endsWith(".spec.ts") ||
+        f.filename.endsWith("__tests__")
+    );
+
+    // Check for documentation files
+    const hasDocChanges = files.some(
+      (f) =>
+        f.filename.endsWith(".md") ||
+        f.filename.includes("docs/") ||
+        f.filename.includes("README") ||
+        f.filename.endsWith("CHANGELOG.md")
+    );
+
+    // Check for configuration changes
+    const hasConfigChanges = files.some(
+      (f) =>
+        f.filename.endsWith(".json") ||
+        f.filename.endsWith(".yml") ||
+        f.filename.endsWith(".yaml") ||
+        f.filename.endsWith(".toml")
+    );
+
+    // Always include base items
+    items.push(
+      "- [x] Tests added" + (hasTestChanges ? "" : " (no test files detected)")
+    );
+    items.push(
+      "- [x] Documentation updated" +
+        (hasDocChanges ? "" : " (no docs updated)")
+    );
+
+    // Add config item if config changed
+    if (hasConfigChanges) {
+      items.push("- [ ] Configuration validated");
+    }
+
+    // Add performance check if large changes
+    const totalChanges = files.reduce(
+      (acc, f) => acc + f.additions + f.deletions,
+      0
+    );
+    if (totalChanges > 500) {
+      items.push("- [ ] Performance reviewed");
+    }
+
+    // Add breaking changes item if deletions are significant
+    const totalDeletions = files.reduce((acc, f) => acc + f.deletions, 0);
+    if (totalDeletions > 100) {
+      items.push("- [ ] Breaking changes documented");
+    }
+
+    return items.join("\n");
   }
 
   /**
@@ -118,26 +217,47 @@ export class Formatter {
    *
    * Preserves:
    * - Existing developer notes and user context
+   * - Raw PR descriptions (moves them to Developer Notes)
    * - Existing checklist items
    * - Other markdown sections
    *
    * Logic:
+   * - Extract raw PR description if present and move to Developer Notes
    * - If AI section exists: replace it and ensure template structure
    * - If no AI section: create complete template with all sections
+   * - Generate dynamic checklist based on file changes
    */
-  replaceAISection(existingBody: string, newAIContent: string): string {
+  replaceAISection(
+    existingBody: string,
+    newAIContent: string,
+    files?: FileChange[]
+  ): string {
+    // Extract raw description that user might have written
+    const rawDescription = this.extractRawPRDescription(existingBody);
+
+    // Extract existing developer notes
+    const existingDevNotes = this.extractExistingDeveloperNotes(existingBody);
+
+    // Merge raw description with existing dev notes
+    let mergedDevNotes = existingDevNotes;
+    if (rawDescription && rawDescription !== "- Add any extra context here") {
+      // Prepend raw description to dev notes
+      mergedDevNotes = `${rawDescription}\n\n${existingDevNotes}`.trim();
+    }
+
+    // Generate dynamic checklist based on files (or use existing)
+    const dynamicChecklist = files
+      ? this.generateDynamicChecklist(files)
+      : this.extractExistingChecklist(existingBody);
+
     if (!existingBody) {
       // Empty body: create complete template with default values
       return this.createCompleteTemplate(
         newAIContent,
-        "- Add any extra context here",
-        "- [ ] Tests added\n- [ ] Documentation updated"
+        mergedDevNotes || "- Add any extra context here",
+        dynamicChecklist
       );
     }
-
-    // Extract existing developer notes and checklist to preserve them
-    const existingDevNotes = this.extractExistingDeveloperNotes(existingBody);
-    const existingChecklist = this.extractExistingChecklist(existingBody);
 
     // Check if AI section already exists
     if (
@@ -148,8 +268,8 @@ export class Formatter {
       return this.replaceSectionWithTemplate(
         existingBody,
         newAIContent,
-        existingDevNotes,
-        existingChecklist
+        mergedDevNotes,
+        dynamicChecklist
       );
     }
 
@@ -157,8 +277,8 @@ export class Formatter {
     this.logger.debug("No AI section found, creating complete template...");
     return this.createCompleteTemplate(
       newAIContent,
-      existingDevNotes,
-      existingChecklist
+      mergedDevNotes,
+      dynamicChecklist
     );
   }
 

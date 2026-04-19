@@ -129,25 +129,43 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 
 ### 5. **Formatter** (`src/utils/formatter.ts`)
 
-**Responsibility**: Convert LLM output to Markdown and intelligently manage PR body sections
+**Responsibility**: Convert LLM output to Markdown and intelligently manage PR body sections with smart content preservation
 
 **Key Methods**:
 
-- `toMarkdown(llmOutput)` - Convert JSON to Markdown
-- `replaceAISection(body, content)` - Replace/append AI section while preserving other content
-- `extractExistingDeveloperNotes(body)` - Preserve user's developer notes
+- `toMarkdown(llmOutput)` - Convert JSON to Markdown (AI content only)
+- `replaceAISection(body, content, files?)` - Replace/append AI section with smart content preservation
+- `extractRawPRDescription(body)` - Extract user pre-written descriptions
+- `generateDynamicChecklist(files)` - Create smart checklist based on file changes
+- `extractExistingDeveloperNotes(body)` - Preserve developer notes
 - `extractExistingChecklist(body)` - Preserve user's custom checklist items
 - `createCompleteTemplate(aiContent, devNotes, checklist)` - Generate full template
 - `replaceSectionWithTemplate(...)` - Update template with preserved content
 
 **Features**:
 
+- ✅ Extracts and preserves user-written PR descriptions
+- ✅ Moves raw descriptions to Developer Notes section
+- ✅ Generates dynamic checklist based on file types changed:
+  - ✅ Tests added (if test files modified)
+  - ✅ Documentation updated (if .md files modified)
+  - ⬜ Configuration validated (if config files modified)
+  - ⬜ Performance reviewed (for large diffs >500 changes)
+  - ⬜ Breaking changes documented (for large deletions >100 lines)
 - ✅ Preserves developer notes and checklist items
 - ✅ Uses HTML comments as markers (`<!-- AI:START -->...<!-- AI:END -->`)
 - ✅ Generates complete template on first run (4 sections)
 - ✅ Intelligent content extraction using regex patterns
 - ✅ Maintains consistent spacing and structure
-- ✅ Handles edge cases (empty body, missing sections)
+- ✅ Handles edge cases (empty body, missing sections, no file data)
+
+**Content Preservation Logic**:
+
+1. **Extract** - Raw description from PR body
+2. **Merge** - Raw description + existing developer notes
+3. **Generate** - Dynamic checklist based on files changed
+4. **Update** - Replace only AI section, preserve everything else
+5. **Result** - Zero data loss, smart suggestions
 
 **PR Body Template Structure**:
 

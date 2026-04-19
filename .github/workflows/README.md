@@ -5,12 +5,14 @@ This directory contains the CI/CD workflows for the **prpilot-summary** action. 
 ## Workflows Overview
 
 ### 1. **ci.yml** - Core Checks (Required)
+
 **Trigger**: Every push and pull request  
 **Status**: ✅ Must pass before merge  
 **Duration**: ~2-3 minutes  
 **Purpose**: Fast feedback loop for code quality
 
 **What it does:**
+
 - ✓ Type checking (`npm run typecheck`)
 - ✓ Linting (`npm run lint`)
 - ✓ Format checking (`npm run format:check`)
@@ -20,6 +22,7 @@ This directory contains the CI/CD workflows for the **prpilot-summary** action. 
 - ✓ Ensure dist is up to date
 
 **Why this order:**
+
 1. Quick syntax checks (typecheck, lint) fail fast
 2. Format check (code style)
 3. Unit tests (logic correctness)
@@ -29,12 +32,14 @@ This directory contains the CI/CD workflows for the **prpilot-summary** action. 
 ---
 
 ### 2. **action-test.yml** - Integration Tests (Optional)
+
 **Trigger**: Pull requests and manual (`workflow_dispatch`)  
 **Status**: ⚠️ Optional (doesn't block merge if secrets missing)  
 **Duration**: ~1-2 minutes  
 **Purpose**: Test the action in a realistic scenario
 
 **What it does:**
+
 - Checks if `GEMINI_API_KEY` secret is configured
 - Skips action execution if secrets are missing (gracefully)
 - Logs execution results and outcomes
@@ -42,33 +47,39 @@ This directory contains the CI/CD workflows for the **prpilot-summary** action. 
 - Ideal for catching integration issues before code review
 
 **Behavior:**
+
 - ✅ If `GEMINI_API_KEY` is set: Runs the action and tests with real LLM
 - ⏭️ If `GEMINI_API_KEY` is missing: Skips action and posts helpful comment
 - 📝 Always logs execution status for debugging
 
 **When to use:**
+
 - After local development
 - Before requesting code review
 - To verify action behavior with real LLM
 
 **Requirements:**
+
 - `GEMINI_API_KEY` secret configured in repo
 - Requires `workflow_dispatch` permissions for manual runs
 
 ---
 
 ### 3. **security.yml** - Scheduled Security Audit (Optional)
+
 **Trigger**: Weekly (Monday 9 AM UTC) or manual  
 **Status**: ⚠️ Optional (doesn't block anything)  
 **Duration**: ~1-2 minutes  
 **Purpose**: Monitor dependencies for vulnerabilities
 
 **What it does:**
+
 - `npm audit` (moderate severity level)
 - Dependency funding info
 - SLSA provenance generation (for release integrity)
 
 **When to run:**
+
 - Automatically: Every Monday morning
 - Manually: `workflow_dispatch` for on-demand checks
 
@@ -87,10 +98,10 @@ User pushes code or creates PR
         ├─ Unit tests
         ├─ Build bundle
         └─ Verify artifacts
-        
+
     If PR: ⚠️ action-test.yml runs (OPTIONAL)
         └─ Test action on PR with LLM
-        
+
     If Monday 9 AM: ⚠️ security.yml runs (OPTIONAL)
         └─ Audit dependencies
 ```
@@ -102,6 +113,7 @@ User pushes code or creates PR
 ### For Contributors
 
 1. **Before pushing**:
+
    ```bash
    npm run typecheck   # Catch type errors early
    npm run lint        # Follow code standards
@@ -142,6 +154,7 @@ User pushes code or creates PR
 ## Troubleshooting
 
 ### "ci.yml fails on dist check"
+
 **Solution**: Run `npm run build` locally and commit the updated `dist/` files.
 
 ```bash
@@ -152,22 +165,27 @@ git push
 ```
 
 ### "action-test.yml shows warning about secrets"
+
 **Why**: The action checks if `GEMINI_API_KEY` is configured and gracefully skips if missing.
 
 **Solution**: Add `GEMINI_API_KEY` to repo secrets (optional for action-test to work).
+
 1. Go to Settings → Secrets and variables → Actions
 2. Click "New repository secret"
 3. Name: `GEMINI_API_KEY`, Value: your key from [Google AI Studio](https://aistudio.google.com/apikey)
 4. Save and re-run workflow
 
 **If you don't add secrets**:
+
 - ✅ The action test still runs (doesn't fail the build)
 - ✅ Action step is skipped gracefully
 - ✅ PR gets a helpful comment about missing secrets
 - ✅ No blocking errors
 
 ### "Tests pass locally but fail in CI"
+
 **Solution**: This is usually platform-specific (Windows vs Linux). Try:
+
 ```bash
 # Run on Ubuntu (GitHub's runner OS)
 npm test -- --runInBand
@@ -176,7 +194,9 @@ npm run lint
 ```
 
 ### "Security audit shows vulnerabilities"
+
 **Solution**: Fix or ignore based on severity.
+
 ```bash
 # Audit and fix automatically
 npm audit fix
@@ -192,11 +212,11 @@ npm audit fix --force
 
 ## CI/CD Pipeline Summary
 
-| Workflow | Trigger | Blocking | Duration | Purpose |
-|----------|---------|----------|----------|---------|
-| `ci.yml` | Push + PR | ✅ Yes | 2-3 min | Core quality checks |
-| `action-test.yml` | PR + manual | ❌ No | 1-2 min | Integration testing |
-| `security.yml` | Weekly + manual | ❌ No | 1-2 min | Dependency audit |
+| Workflow          | Trigger         | Blocking | Duration | Purpose             |
+| ----------------- | --------------- | -------- | -------- | ------------------- |
+| `ci.yml`          | Push + PR       | ✅ Yes   | 2-3 min  | Core quality checks |
+| `action-test.yml` | PR + manual     | ❌ No    | 1-2 min  | Integration testing |
+| `security.yml`    | Weekly + manual | ❌ No    | 1-2 min  | Dependency audit    |
 
 ---
 
@@ -207,6 +227,7 @@ npm audit fix --force
 The workflow uses a smart two-step approach:
 
 **Step 1: Check Secrets**
+
 ```bash
 if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
   echo "has_key=false" >> $GITHUB_OUTPUT
@@ -216,6 +237,7 @@ fi
 ```
 
 **Step 2: Conditional Execution**
+
 ```yaml
 - name: Execute prpilot-summary Action
   if: steps.check_secrets.outputs.has_key == 'true'
@@ -223,6 +245,7 @@ fi
 ```
 
 **Result**:
+
 - ✅ Action runs only if secrets are configured
 - ✅ No error comments posted if secrets missing
 - ✅ Graceful skip without workflow failure
@@ -232,12 +255,12 @@ fi
 
 This workflow uses **job outputs** (`$GITHUB_OUTPUT`) instead of environment variables (`$GITHUB_ENV`) for secrets checking because:
 
-| Feature | Job Outputs | Env Variables |
-|---------|-------------|---------------|
-| Type-safe | ✅ Yes | ❌ No |
-| IDE recognition | ✅ Yes | ❌ No |
-| VSCode warnings | ✅ None | ❌ "Unrecognized context" |
-| Best practice | ✅ Yes | ⚠️ For env only |
+| Feature         | Job Outputs | Env Variables             |
+| --------------- | ----------- | ------------------------- |
+| Type-safe       | ✅ Yes      | ❌ No                     |
+| IDE recognition | ✅ Yes      | ❌ No                     |
+| VSCode warnings | ✅ None     | ❌ "Unrecognized context" |
+| Best practice   | ✅ Yes      | ⚠️ For env only           |
 
 ---
 
