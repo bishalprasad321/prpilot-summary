@@ -197,11 +197,13 @@ The action generates a complete, professional PR template with **intelligent con
 ```
 
 **🛡️ Content Preservation:**
+
 - **AI Section** (`<!-- AI:START -->...<!-- AI:END -->`) - Updated on each PR change
 - **Developer Notes** - Your custom notes are **always preserved** ✅
 - **Checklist** - Custom items **never get overwritten** ✅
 
 **How It Works:**
+
 1. **First Run**: Creates complete template with defaults
 2. **User Edits**: Add/edit notes and checklist items freely
 3. **PR Updates**: Only AI section is regenerated, your content stays intact

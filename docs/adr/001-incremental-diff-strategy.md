@@ -7,6 +7,7 @@ Accepted
 ## Context
 
 When a PR receives new commits, the action needs to decide whether to:
+
 1. Process only the delta (new changes since last update) - **Incremental mode**
 2. Process the full diff from base to head - **Full mode**
 
@@ -25,7 +26,10 @@ Implement an intelligent strategy that:
 
 ```typescript
 // In src/index.ts, STEP 6
-const incrementalDiff = await gitHub.getDiffBetween(lastProcessedSha, currentHeadSha);
+const incrementalDiff = await gitHub.getDiffBetween(
+  lastProcessedSha,
+  currentHeadSha
+);
 const fullDiff = await gitHub.getDiff(prNumber);
 
 const incrementalLineCount = incrementalDiff.split("\n").length;
@@ -65,12 +69,12 @@ if (incrementalLineCount >= incrementalThreshold) {
 ✅ Consistent LLM context across PR updates  
 ✅ Accurate descriptions for large changesets  
 ✅ Maintains performance for small incremental changes  
-✅ Prevents confusing partial descriptions  
+✅ Prevents confusing partial descriptions
 
 ### Negative
 
 ⚠️ Slightly higher API costs when threshold triggers full mode  
-⚠️ Additional API call needed (fetches both diffs)  
+⚠️ Additional API call needed (fetches both diffs)
 
 ## Trade-offs
 

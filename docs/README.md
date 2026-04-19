@@ -20,19 +20,23 @@ Comprehensive documentation for PR Pilot Summary - the intelligent PR descriptio
 ## Key Features
 
 ### Complete PR Template
+
 Generates a professional template with:
+
 - **Summary** section for overview
 - **AI Generated Summary** with key points and highlights
 - **Developer Notes** - your custom notes are always preserved ✅
 - **Checklist** - your custom items never get overwritten ✅
 
 ### Content Preservation
+
 - User-added notes are extracted and preserved on every update
 - Custom checklist items stay intact across PR changes
 - Only the AI section gets regenerated
 - **Zero data loss** guaranteed
 
 ### Intelligent Processing
+
 - Multi-language diff analysis (20+ languages)
 - Smart filtering (removes noise, keeps code)
 - Incremental processing for efficiency

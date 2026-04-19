@@ -100,16 +100,19 @@ Example output:
 ## 📌 Summary
 
 <!-- AI:START -->
+
 ## 🤖 AI Generated Summary
 
 Refactored authentication to use async/await.
 Added token refresh mechanism with 5 min expiry.
 
 **Key Points:**
+
 - Improved performance by 40%
 - Better error handling
 
 **Highlights:**
+
 - Zero downtime deployment
 - Backward compatible
 <!-- AI:END -->
