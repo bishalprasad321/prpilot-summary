@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Groq LLM provider support using Groq's OpenAI-compatible chat completions API
+- Default Groq model set to `openai/gpt-oss-120b`
+- Separate Groq integration workflow using `secrets.GROQ_API_KEY`
 - **Smart Content Preservation**: Automatically extract and preserve user-written PR descriptions to Developer Notes section
 - **Dynamic Checklist Generation**: Auto-generate and intelligently check PR checklist items based on file changes:
   - ✅ Tests added (when test files are modified)

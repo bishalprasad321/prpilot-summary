@@ -48,7 +48,7 @@ interface GeminiResponse {
   modelVersion?: string;
 }
 
-type LLMProvider = "auto" | "openai" | "openai-compatible" | "gemini";
+type LLMProvider = "auto" | "openai" | "openai-compatible" | "gemini" | "groq";
 
 interface LLMClientOptions {
   provider?: LLMProvider;
@@ -65,7 +65,7 @@ export class LLMClient {
 
   constructor(
     apiKey: string,
-    model: string = "gpt-4o-mini",
+    model: string = "openai/gpt-oss-120b",
     options: LLMClientOptions = {}
   ) {
     this.apiKey = apiKey;
@@ -230,6 +230,15 @@ Please generate exactly one compact JSON object and nothing else.`;
     }
 
     if (
+      normalizedModel.startsWith("openai/gpt-oss") ||
+      normalizedModel.startsWith("llama-") ||
+      normalizedModel.startsWith("mixtral-") ||
+      normalizedModel.startsWith("gemma")
+    ) {
+      return "groq";
+    }
+
+    if (
       normalizedModel.startsWith("gpt") ||
       normalizedModel.startsWith("o1") ||
       normalizedModel.startsWith("o3") ||
@@ -244,8 +253,7 @@ Please generate exactly one compact JSON object and nothing else.`;
   private async callOpenAICompatible(
     messages: OpenAIMessage[]
   ): Promise<string> {
-    const apiEndpoint =
-      this.baseUrl || "https://api.openai.com/v1/chat/completions";
+    const apiEndpoint = this.getOpenAICompatibleEndpoint();
 
     const response = await fetch(apiEndpoint, {
       method: "POST",
@@ -270,6 +278,21 @@ Please generate exactly one compact JSON object and nothing else.`;
 
     const data = (await response.json()) as OpenAIResponse;
     return data.choices[0]?.message?.content || "";
+  }
+
+  private getOpenAICompatibleEndpoint(): string {
+    if (this.baseUrl) {
+      const trimmedBase = this.baseUrl.replace(/\/$/, "");
+      return trimmedBase.endsWith("/chat/completions")
+        ? trimmedBase
+        : `${trimmedBase}/chat/completions`;
+    }
+
+    if (this.provider === "groq") {
+      return "https://api.groq.com/openai/v1/chat/completions";
+    }
+
+    return "https://api.openai.com/v1/chat/completions";
   }
 
   private async callGemini(messages: OpenAIMessage[]): Promise<string> {

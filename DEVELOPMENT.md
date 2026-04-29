@@ -171,8 +171,8 @@ languageMap: {
 
 **Key Methods**:
 
-- `buildPrompt()` - Create OpenAI messages
-- `callLLM()` - Call OpenAI API with retry logic
+- `buildPrompt()` - Create provider-compatible chat messages
+- `callLLM()` - Call the configured LLM API with retry logic
 
 **Retry Logic**:
 
@@ -308,12 +308,11 @@ All types in `src/utils/types.ts`.
 
 ### Manual Testing
 
-#### Setup (Using Gemini - Free)
+#### Setup (Using Groq - Free Tier)
 
-1. **Get Gemini API Key** (recommended for development - free tier available):
-   - Go to [Google AI Studio](https://aistudio.google.com/apikey)
-   - Click "Create API Key"
-   - Select "Create new API key in new project"
+1. **Get Groq API Key**:
+   - Go to the Groq console
+   - Create an API key
    - Copy the API key
 
 2. **Build**:
@@ -326,10 +325,10 @@ All types in `src/utils/types.ts`.
 
    ```
    GITHUB_TOKEN=ghp_xxxxx
-   LLM_API_KEY=gsk_xxxxx  # Gemini API key
+   LLM_API_KEY=gsk_xxxxx  # Groq API key
    GITHUB_REPOSITORY=owner/repo
-   LLM_PROVIDER=gemini
-   AI_MODEL=gemini-2.5-flash
+   LLM_PROVIDER=groq
+   AI_MODEL=openai/gpt-oss-120b
    ```
 
 4. **Run locally** (if needed):
@@ -337,10 +336,11 @@ All types in `src/utils/types.ts`.
    npm run dev
    ```
 
-#### Why Gemini for Development?
+#### Why Groq for Development?
 
 - ✅ **Free tier available** - No billing account required
-- ✅ **No mandatory costs** - Test without credit card
+- ✅ **Fast production models** - Useful for short feedback loops
+- ✅ **OpenAI-compatible API** - Simple chat completions integration
 - ✅ **Same test coverage** - Produces high-quality summaries
 - ❌ **OpenAI requires billing** - Mandatory payment account setup
 - ❌ **No true free tier** - Will charge even small amounts
@@ -470,7 +470,7 @@ try {
 
 - Keep context under 2000 tokens (fits in 4k model limit)
 - Truncate large diffs intelligently
-- Use cheaper models for low-risk PRs (gpt-3.5-turbo for docs)
+- Use cheaper or faster models for low-risk PRs (for example `openai/gpt-oss-20b` on Groq)
 
 ### For GitHub API
 
@@ -534,17 +534,19 @@ npm test -- --verbose
 
 ### API Provider Strategy
 
-**This project uses Gemini API for all development and testing:**
+**This project supports Groq and Gemini for development and testing:**
 
-- ✅ Gemini (default) - Free tier, no billing required, excellent for PRs
+- ✅ Groq (default) - Free tier, fast OpenAI-compatible API, strong default model
+- ✅ Gemini - Free tier, no billing required, excellent for PRs
 - ⚠️ OpenAI - Requires mandatory billing account (charges apply)
 
-Both providers are fully supported at runtime, but development uses Gemini to reduce friction for contributors.
+All providers are supported at runtime, but Groq/Gemini reduce friction for contributors.
 
 ## Further Reading
 
 - [GitHub Actions Docs](https://docs.github.com/en/actions)
 - [Octokit SDK](https://github.com/octokit/rest.js)
-- [Gemini API Docs](https://ai.google.dev/api) - Used for development and testing
+- [Groq API Docs](https://console.groq.com/docs/overview) - Default development provider
+- [Gemini API Docs](https://ai.google.dev/api) - Supported development provider
 - [OpenAI API Docs](https://platform.openai.com/docs/api-reference) - Alternative (requires billing)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)

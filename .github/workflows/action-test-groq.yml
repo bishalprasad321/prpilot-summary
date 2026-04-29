@@ -1,0 +1,90 @@
+name: Test Action - Groq Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: "Enable debug mode"
+        required: false
+        default: "true"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-action-groq:
+    name: Integration Test - Groq
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if GROQ_API_KEY exists
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.GROQ_API_KEY }}" ]; then
+            echo "has_key=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_key=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Execute prpilot-summary Action with Groq
+        id: ai_description_groq
+        if: steps.check_secrets.outputs.has_key == 'true'
+        uses: ./
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          llm_api_key: ${{ secrets.GROQ_API_KEY }}
+          llm_provider: groq
+          ai_model: openai/gpt-oss-120b
+          max_diff_lines: "5000"
+          enable_incremental_diff_processing: "true"
+          debug: ${{ inputs.debug_enabled || 'false' }}
+        continue-on-error: true
+
+      - name: Log Groq Action Execution Results
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "Groq Action Execution Report"
+          echo "=========================================="
+          echo "Status: ${{ job.status }}"
+          echo "Outcome: ${{ steps.ai_description_groq.outcome }}"
+          echo ""
+          if [ "${{ steps.ai_description_groq.outcome }}" == "success" ]; then
+            echo "Action executed successfully"
+            echo "PR description was generated and updated with Groq."
+          else
+            echo "Action encountered an error or was skipped"
+            echo "This may be expected if:"
+            echo "  - Secrets are not configured (GROQ_API_KEY missing)"
+            echo "  - No meaningful changes in the PR"
+            echo "  - Groq API is temporarily unavailable"
+          fi
+          echo "=========================================="
+
+      - name: Comment if Groq secret not configured
+        if: failure() && steps.check_secrets.outputs.has_key == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Action Test Failed: Missing Secrets\n\n' +
+                    'The Groq integration test requires `GROQ_API_KEY` to be configured in repo secrets.\n' +
+                    'See API Key Setup in README.md for instructions.'
+            })

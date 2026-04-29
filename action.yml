@@ -8,20 +8,20 @@ inputs:
     description: "GitHub token with permissions to read PR details and post comments."
     required: true
   llm_api_key:
-    description: "LLM provider API key for generating PR descriptions (for example OpenAI, Gemini, or another compatible provider)."
+    description: "LLM provider API key for generating PR descriptions (for example Groq, Gemini, OpenAI, or another compatible provider)."
     required: true
   llm_provider:
-    description: "LLM provider to use. Supported values: auto, openai, openai-compatible, gemini."
+    description: "LLM provider to use. Supported values: auto, groq, openai, openai-compatible, gemini."
     required: false
     default: "auto"
   llm_api_base_url:
-    description: "Optional custom API endpoint. Useful for OpenAI-compatible providers or proxies."
+    description: "Optional custom API endpoint. Useful for Groq/OpenAI-compatible providers or proxies."
     required: false
     default: ""
   ai_model:
-    description: "The AI model to use for generating the PR description (e.g., 'gpt-4o-mini', 'gemini-2.5-flash', or another provider model)."
+    description: "The AI model to use for generating the PR description (e.g., 'openai/gpt-oss-120b', 'gemini-2.5-flash', 'gpt-4o-mini', or another provider model)."
     required: false
-    default: "gpt-4o-mini"
+    default: "openai/gpt-oss-120b"
   max_diff_lines:
     description: "Maximum diff lines to process for generating the PR description. If the diff exceeds this limit, a summary will be generated instead."
     required: false

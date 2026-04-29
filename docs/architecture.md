@@ -116,6 +116,7 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 
 **Supported Providers**:
 
+- Groq
 - OpenAI (GPT-4, GPT-3.5)
 - Gemini
 - OpenAI-compatible endpoints
@@ -279,9 +280,9 @@ The PR Pilot Summary follows a modular, layered architecture designed for clarit
 {
   githubToken: string;          // GitHub API token
   llmApiKey: string;            // LLM provider API key
-  llmProvider: string;          // Provider: auto|openai|gemini|openai-compatible
+  llmProvider: string;          // Provider: auto|groq|openai|gemini|openai-compatible
   llmApiBaseUrl?: string;       // Custom endpoint (optional)
-  aiModel: string;              // Model name (e.g., gpt-4o-mini)
+  aiModel: string;              // Model name (e.g., openai/gpt-oss-120b)
   maxDiffLines: number;         // Truncate threshold (default: 5000)
   enableIncrementalDiffProcessing: boolean; // Use incremental mode
   debug: boolean;               // Verbose logging

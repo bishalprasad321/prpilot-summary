@@ -8,7 +8,7 @@ Analyzes your code changes and produces meaningful summaries, key points, and in
 
 ✨ **Key Features:**
 
-- 🤖 **AI-Powered Analysis** - Supports OpenAI, Gemini, and OpenAI-compatible models
+- 🤖 **AI-Powered Analysis** - Supports Groq, Gemini, OpenAI, and OpenAI-compatible models
 - 📋 **Complete Template** - Generates professional PR structure with Summary, Developer Notes, and Checklist
 - 🛡️ **Smart Content Preservation** - Extracts your existing PR description and preserves it in Developer Notes
 - 📝 **Dynamic Checklist** - Auto-generates checklist items based on file types changed (tests, docs, configs, etc.)
@@ -45,9 +45,9 @@ jobs:
         uses: bishalprasad321/prpilot-summary@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
-          llm_provider: gemini
-          ai_model: gemini-2.5-flash
+          llm_api_key: ${{ secrets.GROQ_API_KEY }}
+          llm_provider: groq
+          ai_model: openai/gpt-oss-120b
           max_diff_lines: 5000
           enable_incremental_diff_processing: true
 ```
@@ -57,10 +57,10 @@ jobs:
 | Input                                | Required | Default                       | Description                                                                     |
 | ------------------------------------ | -------- | ----------------------------- | ------------------------------------------------------------------------------- |
 | `github_token`                       | ✅       | `${{ secrets.GITHUB_TOKEN }}` | GitHub token for PR access                                                      |
-| `llm_api_key`                        | ✅       | `${{ secrets.LLM_API_KEY }}`  | Provider API key such as OpenAI or Gemini                                       |
-| `llm_provider`                       | ❌       | `auto`                        | Provider routing: `auto`, `openai`, `openai-compatible`, `gemini`               |
-| `llm_api_base_url`                   | ❌       | `""`                          | Optional custom endpoint for OpenAI-compatible providers                        |
-| `ai_model`                           | ❌       | `gpt-4o-mini`                 | Model to use (e.g., `gpt-4o-mini`, `gemini-2.5-flash`, custom compatible model) |
+| `llm_api_key`                        | ✅       | `${{ secrets.LLM_API_KEY }}`  | Provider API key such as Groq, Gemini, or OpenAI                                |
+| `llm_provider`                       | ❌       | `auto`                        | Provider routing: `auto`, `groq`, `openai`, `openai-compatible`, `gemini`       |
+| `llm_api_base_url`                   | ❌       | `""`                          | Optional custom endpoint for Groq/OpenAI-compatible providers                   |
+| `ai_model`                           | ❌       | `openai/gpt-oss-120b`         | Model to use (e.g., `openai/gpt-oss-120b`, `gemini-2.5-flash`, `gpt-4o-mini`)   |
 | `max_diff_lines`                     | ❌       | `5000`                        | Max diff lines to process before summarizing                                    |
 | `enable_incremental_diff_processing` | ❌       | `true`                        | Enable incremental processing on updates                                        |
 
@@ -275,7 +275,7 @@ The action **never breaks your PR**. If anything fails:
 
 ## Costs & Performance
 
-- **Cost**: ~$0.005 per PR (using gpt-4o-mini)
+- **Cost**: Varies by provider and model; Groq free-tier usage is available
 - **Speed**: 5-15 seconds typical (depends on diff size)
 - **Max Diff**: 5000 lines (can be adjusted with `max_diff_lines`)
 
@@ -291,8 +291,8 @@ steps:
     uses: bishalprasad321/prpilot-summary@v1
     with:
       github_token: ${{ secrets.GITHUB_TOKEN }}
-      llm_api_key: ${{ secrets.GEMINI_API_KEY }}
-      llm_provider: gemini
+      llm_api_key: ${{ secrets.GROQ_API_KEY }}
+      llm_provider: groq
       debug: true # Logs full context, prompts, responses
 ```
 
@@ -306,6 +306,10 @@ Debug logs include:
 ### Model Selection
 
 ```yaml
+# Groq
+llm_provider: groq
+ai_model: openai/gpt-oss-120b
+
 # OpenAI
 llm_provider: openai
 ai_model: gpt-4o-mini
@@ -334,9 +338,22 @@ Uses default `${{ secrets.GITHUB_TOKEN }}` with permissions:
 
 ### LLM API Key
 
-#### Recommended: Gemini API (Free Tier Available)
+#### Recommended: Groq API (Free Tier Available)
 
-**This project is tested and developed using Gemini API.**
+Groq is the default provider path for new setups. The default model is `openai/gpt-oss-120b`, selected from Groq production models for its strong quality, 131k context window, and large 65k max completion limit.
+
+1. Create a Groq account and API key from the Groq console.
+2. Add it to your repo secrets as `GROQ_API_KEY`.
+3. Reference it in your workflow:
+   ```yaml
+   llm_provider: groq
+   ai_model: openai/gpt-oss-120b
+   llm_api_key: ${{ secrets.GROQ_API_KEY }}
+   ```
+
+#### Gemini API (Free Tier Available)
+
+Gemini remains fully supported and is covered by the existing Gemini integration workflow.
 
 1. **Get Gemini API Key** (free tier available, no billing required):
    - Go to [Google AI Studio](https://aistudio.google.com/apikey)

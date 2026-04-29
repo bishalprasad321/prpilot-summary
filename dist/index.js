@@ -436,7 +436,7 @@ function isValidLLMOutput(output) {
         Array.isArray(output.highlights));
 }
 function isSupportedLLMProvider(provider) {
-    return ["auto", "openai", "openai-compatible", "gemini"].includes(provider);
+    return ["auto", "openai", "openai-compatible", "gemini", "groq"].includes(provider);
 }
 // =============================================================================
 // INITIALIZATION
@@ -456,7 +456,7 @@ async function main() {
             llmApiKey: core.getInput("llm_api_key"),
             llmProvider: core.getInput("llm_provider") || "auto",
             llmApiBaseUrl: core.getInput("llm_api_base_url"),
-            aiModel: core.getInput("ai_model") || "gpt-4o-mini",
+            aiModel: core.getInput("ai_model") || "openai/gpt-oss-120b",
             maxDiffLines: parseInt(core.getInput("max_diff_lines")) || 5000,
             enableIncrementalDiffProcessing: core.getInput("enable_incremental_diff_processing") !== "false",
             debug: core.getInput("debug") === "true",
@@ -465,7 +465,7 @@ async function main() {
             throw new Error("Missing required inputs: github_token or llm_api_key");
         }
         if (!isSupportedLLMProvider(inputs.llmProvider)) {
-            throw new Error(`Unsupported llm_provider '${inputs.llmProvider}'. Expected one of: auto, openai, openai-compatible, gemini`);
+            throw new Error(`Unsupported llm_provider '${inputs.llmProvider}'. Expected one of: auto, openai, openai-compatible, gemini, groq`);
         }
         logger.info(`✓ Inputs validated`);
         logger.info(`  - LLM Provider: ${inputs.llmProvider}`);
@@ -778,7 +778,7 @@ exports.LLMClient = void 0;
 const node_fetch_1 = __importDefault(__nccwpck_require__(6705));
 const logger_js_1 = __nccwpck_require__(8532);
 class LLMClient {
-    constructor(apiKey, model = "gpt-4o-mini", options = {}) {
+    constructor(apiKey, model = "openai/gpt-oss-120b", options = {}) {
         this.apiKey = apiKey;
         this.model = model;
         this.logger = new logger_js_1.Logger(options.debug);
@@ -907,6 +907,12 @@ Please generate exactly one compact JSON object and nothing else.`;
         if (normalizedModel.startsWith("gemini")) {
             return "gemini";
         }
+        if (normalizedModel.startsWith("openai/gpt-oss") ||
+            normalizedModel.startsWith("llama-") ||
+            normalizedModel.startsWith("mixtral-") ||
+            normalizedModel.startsWith("gemma")) {
+            return "groq";
+        }
         if (normalizedModel.startsWith("gpt") ||
             normalizedModel.startsWith("o1") ||
             normalizedModel.startsWith("o3") ||
@@ -916,7 +922,7 @@ Please generate exactly one compact JSON object and nothing else.`;
         return "openai-compatible";
     }
     async callOpenAICompatible(messages) {
-        const apiEndpoint = this.baseUrl || "https://api.openai.com/v1/chat/completions";
+        const apiEndpoint = this.getOpenAICompatibleEndpoint();
         const response = await (0, node_fetch_1.default)(apiEndpoint, {
             method: "POST",
             headers: {
@@ -936,6 +942,18 @@ Please generate exactly one compact JSON object and nothing else.`;
         }
         const data = (await response.json());
         return data.choices[0]?.message?.content || "";
+    }
+    getOpenAICompatibleEndpoint() {
+        if (this.baseUrl) {
+            const trimmedBase = this.baseUrl.replace(/\/$/, "");
+            return trimmedBase.endsWith("/chat/completions")
+                ? trimmedBase
+                : `${trimmedBase}/chat/completions`;
+        }
+        if (this.provider === "groq") {
+            return "https://api.groq.com/openai/v1/chat/completions";
+        }
+        return "https://api.openai.com/v1/chat/completions";
     }
     async callGemini(messages) {
         const systemPrompt = messages.find((message) => message.role === "system")?.content || "";

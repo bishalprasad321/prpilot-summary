@@ -48,6 +48,7 @@ Automatically generates checklist items based on files changed:
 
 ### Intelligent Processing
 
+- Groq, Gemini, OpenAI, and OpenAI-compatible provider support
 - Multi-language diff analysis (20+ languages)
 - Smart filtering (removes noise, keeps code)
 - Incremental processing for efficiency
