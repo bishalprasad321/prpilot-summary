@@ -33,24 +33,21 @@ jobs:
           ai_model: openai/gpt-oss-120b
 ```
 
-### Step 2 — Get a Groq API key
+2. Get your Groq API key:
+   - Visit the Groq console
+   - Create an API key
+   - Copy the generated key
 
-1. Go to [console.groq.com](https://console.groq.com) and create an account
-2. Generate an API key
-3. Copy the key
+3. Add secrets to your repo:
+   - Go to `Settings` → `Secrets and variables` → `Actions`
+   - Click **"New repository secret"**
+   - Name: `GROQ_API_KEY`
+   - Value: Paste your Groq API key from step 2
+   - Click **"Add secret"**
 
 ### Step 3 — Add the secret to your repository
 
-1. Go to **Settings → Secrets and variables → Actions**
-2. Click **New repository secret**
-3. Name: `GROQ_API_KEY`, Value: the key from step 2
-4. Click **Add secret**
-
-### Step 4 — Open a pull request
-
-Create or update a PR and the action will run automatically.
-
-**Alternative providers:** See [README.md](README.md#api-keys) for Gemini, OpenAI, and other options.
+**Alternative Providers**: See [README.md](README.md#api-keys) for Gemini, OpenAI, or other LLM providers
 
 ---
 
@@ -88,15 +85,17 @@ npm run dev           # run directly with ts-node
 
 When a PR is opened or updated:
 
-1. The action reads the current diff and commit messages
-2. It sends filtered, chunked diff content to the configured LLM
-3. The LLM returns a structured summary
-4. The PR body is updated with the following sections:
-   - **Summary** — top-level section header
-   - **AI Generated Summary** — LLM-generated content (replaced on each run)
-   - **Developer Notes** — preserved across runs; pre-written descriptions are moved here automatically
-   - **Checklist** — a single documentation item, auto-checked when `*.md` files are modified
-5. State is persisted so the same commit is never processed twice
+```
+1. ✅ PR opened/updated
+2. 🤖 AI analyzes the changes
+3. � Generates complete PR template:
+   - Summary section (📌)
+   - AI Generated Summary (🤖) with insights
+   - Developer Notes (🧑‍💻) - your pre-written description is extracted here!
+   - Generic Checklist (✅) - documentation checkbox auto-checked for `*.md` changes
+4. 💾 Updates PR description automatically
+5. 👀 Reviewers get context instantly
+```
 
 ### Key behaviors
 
@@ -104,7 +103,13 @@ When a PR is opened or updated:
 - The `<!-- AI:START -->` / `<!-- AI:END -->` markers delimit the only section the action ever modifies
 - All other content in the PR body is left untouched
 
-### Example PR body
+- **If you write a description first**: It gets extracted and moved to "Developer Notes" (not lost!)
+- **Generic Checklist**:
+  - ✅ Documentation updated / modified (checked only if `*.md` files were modified)
+- **Idempotent**: Safe to edit and re-run multiple times
+- **Content Preservation**: Your notes and checklist edits never get lost
+
+Example output:
 
 ```markdown
 ## Summary
@@ -138,6 +143,17 @@ Added token refresh with a 5-minute expiry.
 ## Checklist
 
 - [ ] Documentation updated / modified
+
+### Key Points
+
+- Converted callbacks to Promises
+- Added automatic token refresh
+- 95% reduction in 401 errors
+
+### Highlights
+
+- Better code maintainability
+- Enhanced security with rate limiting
 ```
 
 ---
@@ -150,8 +166,7 @@ Added token refresh with a 5-minute expiry.
 with:
   llm_provider: groq
   ai_model: openai/gpt-oss-120b
-
-  # or Gemini
+  # or
   llm_provider: gemini
   ai_model: gemini-2.5-flash
 

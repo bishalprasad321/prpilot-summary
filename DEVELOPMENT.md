@@ -178,7 +178,8 @@ Key methods:
 
 **Retry policy:** up to 3 attempts with exponential backoff (1s, 2s, 4s).
 
-**To add a new provider:**
+- `buildPrompt()` - Create provider-compatible chat messages
+- `callLLM()` - Call the configured LLM API with retry logic
 
 1. Add the provider name to the `LLMProvider` type
 2. Add detection logic in `resolveProvider()`
@@ -213,7 +214,35 @@ Key public methods:
 | `replaceAISection(body, content, files?)` | Replace the AI section, preserving all other content  |
 | `getAISection(body)`                      | Extract the current AI section (useful for debugging) |
 
-**Section markers:**
+- `toMarkdown()` - JSON → Markdown (AI content only)
+- `replaceAISection()` - Smart section replacement with content extraction
+- `getAISection()` - Extract AI section for validation
+- `extractRawPRDescription()` - Extract user-written descriptions (private)
+- `generateDynamicChecklist()` - Create a generic documentation checklist based on markdown files (private)
+
+**Content Extraction Logic**:
+
+1. **Extract Raw Description** - If user wrote description before action ran:
+
+   ```typescript
+   "This fixes auth bug #42" → Moved to Developer Notes
+   ```
+
+2. **Generate Generic Checklist** - Based on markdown file changes:
+
+   ```
+   *.md files changed → ✅ Documentation updated / modified (checked)
+   No *.md files changed → ⬜ Documentation updated / modified
+   ```
+
+3. **Merge Content** - Preserve all user content:
+   ```
+   Raw Description + Existing Dev Notes → Developer Notes section
+   Generic checklist + User Edits → Checklist section
+   AI Content → AI section (between markers)
+   ```
+
+**Section Markers**:
 
 ```html
 <!-- AI:START -->
@@ -223,11 +252,11 @@ Key public methods:
 
 **Content preservation logic:**
 
-1. Extract any raw description written before the action first ran
-2. Extract existing Developer Notes content
-3. Merge the raw description into Developer Notes (raw description goes first if both exist)
-4. Generate the checklist based on whether `*.md` files were changed
-5. Replace only the AI section; rebuild the template around the preserved content
+1. Extract raw description from PR body
+2. If AI section exists → replace between markers
+3. If no AI section → create complete template
+4. Always preserve developer notes and checklist edits
+5. Generate checklist dynamically based on markdown files changed
 
 **Checklist behavior:**
 
@@ -273,14 +302,12 @@ When adding new types, define them in `types.ts`, export them, and import from t
 
 ### Unit tests
 
-```bash
-npm test
-npm test -- --coverage
-npm test -- --verbose
-npm test -- --testPathPattern=formatter
-```
+#### Setup (Using Groq - Free Tier)
 
-Test files live alongside the modules they test (e.g. `src/utils/formatter.test.ts`).
+1. **Get Groq API Key**:
+   - Go to the Groq console
+   - Create an API key
+   - Copy the API key
 
 ### Manual integration testing
 
@@ -290,7 +317,7 @@ Test files live alongside the modules they test (e.g. `src/utils/formatter.test.
 
    ```
    GITHUB_TOKEN=ghp_xxxxx
-   LLM_API_KEY=gsk_xxxxx
+   LLM_API_KEY=gsk_xxxxx  # Groq API key
    GITHUB_REPOSITORY=owner/repo
    LLM_PROVIDER=groq
    AI_MODEL=openai/gpt-oss-120b
@@ -298,9 +325,14 @@ Test files live alongside the modules they test (e.g. `src/utils/formatter.test.
 
 4. Run locally: `npm run dev`
 
-### CI/CD pipeline
+#### Why Groq for Development?
 
-The `ci.yml` workflow runs on every push and PR. It type-checks, lints, formats, tests, builds, and verifies the `dist/` bundle. The workflow also checks that the committed `dist/` matches what `npm run build` would produce — so always run the build and commit updated `dist/` before pushing.
+- ✅ **Free tier available** - No billing account required
+- ✅ **Fast production models** - Useful for short feedback loops
+- ✅ **OpenAI-compatible API** - Simple chat completions integration
+- ✅ **Same test coverage** - Produces high-quality summaries
+- ❌ **OpenAI requires billing** - Mandatory payment account setup
+- ❌ **No true free tier** - Will charge even small amounts
 
 ### Provider notes for development
 
@@ -395,7 +427,43 @@ Use the `Logger` class. Do not use `console.log` directly in module code.
 - For large PRs, consider lowering the token cost by using a faster model (e.g. `openai/gpt-oss-20b` on Groq)
 - GitHub's authenticated API rate limit is 5000 requests/hour
 
----
+   ```typescript
+   logger.info("message");
+   ```
+
+3. **Tests**: Add tests for new features
+   ```bash
+   npm run test -- --testPathPattern=new-feature
+   ```
+
+### PR Requirements
+
+- ✅ Builds without errors
+- ✅ Passes type check
+- ✅ Passes linter
+- ✅ Code formatted
+- ✅ Tests pass
+- ✅ Documentation updated
+
+## Performance Tips
+
+### For LLM Requests
+
+- Keep context under 2000 tokens (fits in 4k model limit)
+- Truncate large diffs intelligently
+- Use cheaper or faster models for low-risk PRs (for example `openai/gpt-oss-20b` on Groq)
+
+### For GitHub API
+
+- Cache PR metadata when possible
+- Use GraphQL for multiple queries (future enhancement)
+- Respect rate limits (60 requests/hour unauthenticated, 5000/hour authenticated)
+
+### For Processing
+
+- Lazy-load modules (already done)
+- Use incremental diff (already enabled by default)
+- Filter aggressively (ignore lock files, build outputs)
 
 ## Troubleshooting
 
@@ -444,11 +512,19 @@ npm test -- --verbose
 
 ---
 
-## Further reading
+**This project supports Groq and Gemini for development and testing:**
 
-- [GitHub Actions documentation](https://docs.github.com/en/actions)
-- [Octokit REST SDK](https://github.com/octokit/rest.js)
-- [Groq API docs](https://console.groq.com/docs/overview)
-- [Gemini API docs](https://ai.google.dev/api)
-- [OpenAI API reference](https://platform.openai.com/docs/api-reference)
-- [TypeScript handbook](https://www.typescriptlang.org/docs/)
+- ✅ Groq (default) - Free tier, fast OpenAI-compatible API, strong default model
+- ✅ Gemini - Free tier, no billing required, excellent for PRs
+- ⚠️ OpenAI - Requires mandatory billing account (charges apply)
+
+All providers are supported at runtime, but Groq/Gemini reduce friction for contributors.
+
+## Further Reading
+
+- [GitHub Actions Docs](https://docs.github.com/en/actions)
+- [Octokit SDK](https://github.com/octokit/rest.js)
+- [Groq API Docs](https://console.groq.com/docs/overview) - Default development provider
+- [Gemini API Docs](https://ai.google.dev/api) - Supported development provider
+- [OpenAI API Docs](https://platform.openai.com/docs/api-reference) - Alternative (requires billing)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
