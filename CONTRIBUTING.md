@@ -1,148 +1,137 @@
 # Contributing to PR Pilot Summary
 
-Thank you for your interest in contributing! This document provides guidelines and instructions.
+Thank you for your interest in contributing. This document covers how to report issues, propose features, submit code, and follow the project's standards.
 
-## Code of Conduct
+## Code of conduct
 
 Be respectful, inclusive, and constructive in all interactions.
 
-## Ways to Contribute
+## Ways to contribute
 
-### 1. Report Bugs
+### Report a bug
 
-Found a bug? Create an issue with:
+Open an issue and include:
 
-- **Title**: Clear, descriptive title
-- **Description**: What happened vs. expected
-- **Steps to Reproduce**: Exact steps to trigger the bug
-- **Environment**: OS, Node version, action configuration
-- **Logs**: Include relevant logs (enable debug mode if needed)
+- A clear, descriptive title
+- What happened vs. what you expected
+- Steps to reproduce
+- Environment details (OS, Node.js version, action configuration)
+- Relevant logs (enable `debug: true` in the action if needed)
 
-### 2. Suggest Features
+### Suggest a feature
 
-Have an idea? Open an issue with label `enhancement`:
+Open an issue with the `enhancement` label and describe:
 
-- **Problem**: What problem does this solve?
-- **Proposed Solution**: How should it work?
-- **Alternative Approaches**: Other ways to solve it?
-- **Use Cases**: Real-world examples
+- The problem this would solve
+- Your proposed solution
+- Alternative approaches you considered
+- Real-world use cases
 
-### 3. Submit Code
+### Submit code
 
-### 4. Improve Documentation
+See the workflow below.
 
-Documentation PRs are very welcome! Improve:
+### Improve documentation
 
-- README.md (user-facing)
-- DEVELOPMENT.md (developer-facing)
-- Inline comments
-- Examples
+Documentation PRs are welcome. Common targets include:
 
-## Getting Started
+- `README.md` — user-facing reference
+- `DEVELOPMENT.md` — developer-facing guide
+- Inline code comments
+- Usage examples
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js 16+ (check with `node --version`)
-- npm or yarn
+- Node.js 20 or later
+- npm
 - Git
 
-### Setup for Contributing
+### Setup
 
 ```bash
-# 1. Fork the repository
-# Go to https://github.com/bishalprasad321/prpilot-summary
-# Click "Fork"
+# Fork the repository on GitHub, then:
 
-# 2. Clone your fork
 git clone https://github.com/YOUR_USERNAME/prpilot-summary.git
 cd prpilot-summary
 
-# 3. Add upstream remote
 git remote add upstream https://github.com/bishalprasad321/prpilot-summary.git
 
-# 4. Install dependencies
 npm install
 
-# 5. Create a branch
+# Create a branch
 git checkout -b fix/issue-name
 # or
 git checkout -b feature/new-feature-name
 ```
 
-## Development Workflow
+## Development workflow
 
-### Before You Start Coding
+### Before writing code
 
-1. **Check issues**: Look for `good first issue` labels
-2. **Comment on issue**: Say "I'd like to work on this"
-3. **Discuss approach**: Get feedback before major work
+1. Check open issues for a `good first issue` label
+2. Comment on the issue to indicate you are working on it
+3. Discuss your approach before starting significant work
 
-### While Coding
+### While coding
 
 ```bash
-# 1. Run in watch mode
-npm run watch
+npm run watch          # auto-recompile on file changes
 
-# 2. Keep code quality high
-npm run typecheck
-npm run lint
-npm run format
+npm run typecheck      # catch type errors early
+npm run lint           # check code style
+npm run format         # auto-format
 
-# 3. Test your changes locally
-npm run build
-npm test  # if tests exist
-
-# 4. Write clear commit messages
-git add .
-git commit -m "feat: add incremental diff support"
-# Use: feat, fix, refactor, test, docs, chore
+npm run build          # full build
+npm test               # run tests
 ```
 
-### Before Submitting PR
+### Before opening a PR
 
 ```bash
-# 1. Final quality check
 npm run typecheck
 npm run lint:fix
 npm run format
 npm run build
 
-# 2. Push to your fork
 git push origin fix/issue-name
-
-# 3. Create PR on GitHub
-# Fill in the PR template completely
+# then open a PR on GitHub
 ```
 
-## PR Guidelines
+## Pull request guidelines
 
 ### Checklist
 
-Before submitting, ensure:
+Before submitting, verify:
 
-- [ ] Builds successfully: `npm run build`
-- [ ] Types check: `npm run typecheck`
-- [ ] Lint passes: `npm run lint` (or use `lint:fix`)
-- [ ] Code formatted: `npm run format`
-- [ ] Commits are clear and descriptive
-- [ ] PR title is clear and references issue (#123)
-- [ ] PR description explains what and why
+- [ ] `npm run build` completes without errors
+- [ ] `npm run typecheck` passes
+- [ ] `npm run lint` passes (or `lint:fix` was run)
+- [ ] `npm run format` was applied
+- [ ] Commits have clear, descriptive messages
+- [ ] PR title is clear and references the related issue (e.g. `fix: handle empty diff (#42)`)
+- [ ] PR description explains what changed and why
 
-### Commit Messages
+### Commit message format
 
-Format: `type(scope): description`
+```
+type(scope): short description
+```
 
-**Types**:
+**Types:**
 
-- `feat`: New feature
-- `fix`: Bug fix
-- `refactor`: Code reorganization (no behavior change)
-- `test`: Add/update tests
-- `docs`: Documentation updates
-- `chore`: Build, dependencies, tooling
-- `perf`: Performance improvements
+| Type       | When to use                                |
+| ---------- | ------------------------------------------ |
+| `feat`     | New feature                                |
+| `fix`      | Bug fix                                    |
+| `refactor` | Code restructuring without behavior change |
+| `test`     | Adding or updating tests                   |
+| `docs`     | Documentation changes                      |
+| `chore`    | Build, dependency, or tooling changes      |
+| `perf`     | Performance improvements                   |
 
-**Examples**:
+**Examples:**
 
 ```
 feat(github): add support for filtering by file type
@@ -152,155 +141,114 @@ docs(readme): add troubleshooting section
 test(state-manager): add persistence tests
 ```
 
-### PR Description
-
-Include:
-
-- **What**: What changes were made?
-- **Why**: Why are these changes needed?
-- **Testing**: How was this tested?
-- **Breaking Changes**: Any BC or migrations needed?
-- **Related Issues**: Fixes #123
-
-**Template**:
+### PR description template
 
 ```markdown
 ## What
 
-Adds support for custom LLM providers (not just OpenAI)
+Brief description of what this PR changes.
 
 ## Why
 
-Users with Anthropic/other API keys could not use this action
+Explanation of the problem this solves or the motivation behind it.
 
 ## How
 
-- Extract LLM logic into interface
-- Create LLMProvider base class
-- Implement OpenAIProvider and AnthropicProvider
-- Add provider input to action.yml
+- Key implementation detail 1
+- Key implementation detail 2
 
 ## Testing
 
-- Manual test with Anthropic API key
-- Existing tests still pass
+How you tested this change.
 
-## Breaking Changes
+## Breaking changes
 
-None
+None / describe any breaking changes.
 
-## Closes
+## Related issues
 
-#456
+Closes #123
 ```
 
-## Code Standards
+## Code standards
 
-See [DEVELOPMENT.md](DEVELOPMENT.md#code-standards) for detailed standards.
+See [DEVELOPMENT.md](DEVELOPMENT.md#code-standards) for the full reference.
 
-**Quick Reference**:
+**Quick summary:**
 
-- Use TypeScript strict mode (enabled by default)
-- No `any` types
-- Always specify return types
-- Use camelCase for variables
-- Use PascalCase for classes
-- Document **why**, not **what**
-- Use logger, not console.log
+- TypeScript strict mode is always enabled
+- No `any` types — use `unknown` and narrow, or create a proper interface
+- Always declare return types on functions
+- Use `camelCase` for variables and functions, `PascalCase` for classes and interfaces
+- Use the `logger` utility, not `console.log` directly
+- Document _why_, not _what_ — the code already shows what
 
 ## Testing
 
-### Run Tests
+Run the full test suite:
 
 ```bash
 npm test
 ```
 
-### Write Tests
-
-Create `src/modules/module.test.ts`:
-
-```typescript
-import { ModuleClass } from "./module";
-
-describe("ModuleClass", () => {
-  it("should do something", () => {
-    const instance = new ModuleClass();
-    expect(instance.method()).toEqual("result");
-  });
-});
-```
-
-### Coverage
+Run with coverage:
 
 ```bash
 npm test -- --coverage
 ```
 
+When adding a new module or feature, create a corresponding test file:
+
+```typescript
+import { MyClass } from "../src/path/to/module";
+
+describe("MyClass", () => {
+  it("should behave as expected", () => {
+    const instance = new MyClass();
+    expect(instance.method()).toEqual("expected result");
+  });
+});
+```
+
 ## Documentation
 
-### Update README
+If your change affects users, update `README.md` (features list, inputs table, examples, troubleshooting).
 
-If your feature affects users:
+If your change affects the development setup or architecture, update `DEVELOPMENT.md`.
 
-- Add to Features section
-- Update Inputs/Outputs tables
-- Add example usage
-- Update Troubleshooting if needed
+## Code review
 
-### Update DEVELOPMENT.md
+Reviewers check for:
 
-If your changes affect developers:
+- Code quality and adherence to standards
+- Test coverage for new logic
+- Clear and complete documentation
+- No performance regressions
+- No new security vulnerabilities
 
-- Document the new module/pattern
-- Add troubleshooting section
-- Update architecture diagram if needed
+When responding to review comments, update the code and commit the changes. Re-request review once you're done.
 
-## Code Review
+## Release process
 
-### What Reviewers Look For
+Releases are made by maintainers:
 
-- ✅ Code quality (follows standards)
-- ✅ Tests (coverage for new code)
-- ✅ Documentation (clear and complete)
-- ✅ Performance (no regressions)
-- ✅ Security (no vulnerabilities)
-- ✅ UX (action easy to use)
-
-### Responding to Feedback
-
-- Be open to suggestions
-- Ask for clarification if needed
-- Update code and commit changes
-- Re-request review when ready
-
-## Release Process
-
-Only maintainers can release, but here's how:
-
-1. Bump version: `package.json`, `action.yml`
-2. Update CHANGELOG.md
-3. Commit: `git commit -am "chore: v1.2.3"`
-4. Tag: `git tag v1.2.3`
-5. Push: `git push origin main --tags`
-6. Create Release on GitHub
+1. Bump the version in `package.json` and `action.yml`
+2. Update `CHANGELOG.md`
+3. `git commit -am "chore: release v1.2.3"`
+4. `git tag v1.2.3`
+5. `git push origin main --tags`
+6. Create a GitHub Release from the tag
 
 ## Recognition
 
-Contributors are recognized in:
+Contributors are listed on the GitHub contributors page and credited in release notes.
 
-- GitHub contributors page
-- ACKNOWLEDGMENTS.md (if created)
-- Release notes
+## Questions
 
-## Questions?
-
-- 📖 Read DEVELOPMENT.md for technical details
-- 💬 Comment on the issue
-- 📧 Email: bishalprasad321@gmail.com
+- Read [DEVELOPMENT.md](DEVELOPMENT.md) for technical details
+- Comment on the relevant issue
+- Email: bishalprasad321@gmail.com
 
 ## License
 
-By contributing, you agree your code is licensed under MIT.
-
-Thank you for contributing! 🎉
+By contributing, you agree that your code will be licensed under the MIT License.

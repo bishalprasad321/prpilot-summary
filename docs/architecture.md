@@ -1,350 +1,283 @@
 # Architecture Overview
 
-## System Design
+## System design
 
-The PR Pilot Summary follows a modular, layered architecture designed for clarity, testability, and maintainability.
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    GitHub Workflow Trigger                      │
-│              (pull_request: [opened, synchronize])              │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                    ┌──────────▼───────────┐
-                    │   Main Orchestrator   │
-                    │   (src/index.ts)      │
-                    └──────────┬────────────┘
-                               │
-    ┌──────────────────────────┼──────────────────────────┐
-    │                          │                          │
-    ▼                          ▼                          ▼
-┌─────────────┐        ┌──────────────┐         ┌────────────┐
-│   GitHub    │        │    Diff      │         │   LLM      │
-│   Client    │        │  Processor   │         │   Client   │
-│             │        │              │         │            │
-│ - Fetch PR  │        │ - Parse diff │         │ - Build    │
-│ - Get files │        │ - Filter     │         │   prompt   │
-│ - Get diffs │        │ - Chunk      │         │ - Call API │
-│ - Update    │        │ - Detect     │         │ - Validate │
-│   body      │        │   language   │         │   output   │
-└─────────────┘        └──────────────┘         └────────────┘
-    │                          │                       │
-    └──────────────────────────┼───────────────────────┘
-                               │
-                    ┌──────────▼────────────┐
-                    │     Formatter         │
-                    │                       │
-                    │ - Convert to Markdown │
-                    │ - Replace AI section  │
-                    │ - Preserve structure  │
-                    └──────────┬─────────── ┘
-                               │
-                    ┌──────────▼────────────┐
-                    │   State Manager       │
-                    │                       │
-                    │ - Track SHA           │
-                    │ - Ensure idempotency  │
-                    └──────────┬─────────── ┘
-                               │
-                    ┌──────────▼────────────┐
-                    │  GitHub API Update    │
-                    │  (Update PR body)     │
-                    └────────────────────── ┘
-```
-
-## Core Modules
-
-### 1. **Main Orchestrator** (`src/index.ts`)
-
-**Responsibility**: Coordinate all modules and control execution flow
-
-- **14-Step Pipeline**:
-  1. Parse inputs
-  2. Extract GitHub context
-  3. Initialize clients
-  4. Fetch PR metadata
-  5. State check (idempotency)
-  6. Diff retrieval
-  7. Diff processing
-  8. Context preparation
-  9. LLM execution
-  10. Format output
-  11. Safe PR update
-  12. Push to GitHub
-  13. Persist state
-  14. Final logging
-
-- **Error Handling**: Graceful failure without breaking PR flow
-
-### 2. **GitHub Client** (`src/github/github-client.ts`)
-
-**Responsibility**: Abstract GitHub API interactions using Octokit
-
-**Methods**:
-
-- `getPullRequest(prNumber)` - Fetch PR metadata
-- `getChangedFiles(prNumber)` - Get affected files
-- `getCommits(prNumber)` - Get commit history
-- `getDiff(prNumber)` - Get full diff (base...head)
-- `getDiffBetween(baseSha, headSha)` - Get delta diff
-- `updatePullRequest(prNumber, options)` - Update PR body
-- `commentOnPR(prNumber, message)` - Post comment
-
-### 3. **Diff Processor** (`src/diff/diff-processor.ts`)
-
-**Responsibility**: Intelligent diff filtering, chunking, and classification
-
-**Key Features**:
-
-- **Filtering**: Ignores binary files, build artifacts, node_modules
-- **Language Detection**: Identifies file types by extension
-- **Truncation**: Prioritizes modified files over added/removed
-- **Chunking**: Splits large diffs while preserving context
-
-**Ignore Patterns**:
+PR Pilot Summary follows a modular, layered architecture. The central orchestrator (`index.ts`) coordinates a fixed pipeline of steps, each delegated to a dedicated module. No business logic lives in the orchestrator itself.
 
 ```
-- .lock files (package-lock.json, yarn.lock)
-- Binary files (.png, .jpg, .pdf, etc.)
-- Build outputs (dist/, build/)
-- Log files
+                    GitHub Actions trigger
+                  (pull_request: opened/synchronize)
+                              |
+                    +---------v----------+
+                    |   Orchestrator     |
+                    |   (index.ts)       |
+                    +---------+----------+
+                              |
+          +-------------------+-------------------+
+          |                   |                   |
+   +------v------+    +-------v------+    +-------v------+
+   | GitHub      |    | Diff         |    | LLM          |
+   | Client      |    | Processor    |    | Client       |
+   |             |    |              |    |              |
+   | Fetch PR    |    | Parse diff   |    | Build prompt |
+   | Get files   |    | Filter files |    | Call API     |
+   | Get commits |    | Chunk output |    | Parse JSON   |
+   | Update body |    | Detect lang  |    | Retry logic  |
+   +------+------+    +-------+------+    +-------+------+
+          |                   |                   |
+          +-------------------+-------------------+
+                              |
+                    +---------v----------+
+                    |   Formatter        |
+                    |                   |
+                    | JSON -> Markdown  |
+                    | Replace AI section|
+                    | Preserve content  |
+                    +---------+---------+
+                              |
+                    +---------v----------+
+                    |  State Manager     |
+                    |                   |
+                    | Track SHA         |
+                    | Ensure idempotency|
+                    +---------+---------+
+                              |
+                    +---------v----------+
+                    |  GitHub API update |
+                    | (updatePullRequest)|
+                    +--------------------+
 ```
 
-### 4. **LLM Client** (`src/llm/llm-client.ts`)
+## Core modules
 
-**Responsibility**: Abstract LLM provider interactions
+### Orchestrator (`src/index.ts`)
 
-**Supported Providers**:
+Owns the 14-step pipeline. Each step is numbered in comments and logs its entry and result. The orchestrator should not contain business logic — it delegates everything.
 
-- Groq
-- OpenAI (GPT-4, GPT-3.5)
-- Gemini
-- OpenAI-compatible endpoints
-- Auto-detection
+Steps:
 
-**Methods**:
+1. Parse inputs
+2. Extract GitHub context
+3. Initialize clients
+4. Fetch PR metadata
+5. State check — exit if SHA already processed
+6. Diff retrieval — full or incremental
+7. Diff processing — filter, chunk, detect language
+8. LLM context preparation
+9. LLM execution
+10. Output formatting
+11. PR body update — merge new AI section
+12. Push to GitHub
+13. Persist state
+14. Final logging
 
-- `buildPrompt(context)` - Create prompt from context
-- `callLLM(prompt)` - Execute LLM API call
-- `getProvider()` - Return resolved provider name
+### GitHub Client (`src/github/github-client.ts`)
 
-### 5. **Formatter** (`src/utils/formatter.ts`)
+Wraps Octokit. All methods return data or null/empty on error — they never throw.
 
-**Responsibility**: Convert LLM output to Markdown and intelligently manage PR body sections with smart content preservation
+| Method                       | Description                          |
+| ---------------------------- | ------------------------------------ |
+| `getPullRequest(n)`          | Fetch PR title, body, base/head SHAs |
+| `getChangedFiles(n)`         | List files changed in the PR         |
+| `getCommits(n)`              | Get commit history                   |
+| `getDiff(n)`                 | Full diff from base to head          |
+| `getDiffBetween(base, head)` | Diff between two specific SHAs       |
+| `updatePullRequest(n, opts)` | Update the PR body                   |
+| `commentOnPR(n, msg)`        | Post a comment                       |
 
-**Key Methods**:
+### Diff Processor (`src/diff/diff-processor.ts`)
 
-- `toMarkdown(llmOutput)` - Convert JSON to Markdown (AI content only)
-- `replaceAISection(body, content, files?)` - Replace/append AI section with smart content preservation
-- `extractRawPRDescription(body)` - Extract user pre-written descriptions
-- `generateDynamicChecklist(files)` - Create generic checklist based on markdown file changes
-- `extractExistingDeveloperNotes(body)` - Preserve developer notes
-- `extractExistingChecklist(body)` - Preserve user's custom checklist items
-- `createCompleteTemplate(aiContent, devNotes, checklist)` - Generate full template
-- `replaceSectionWithTemplate(...)` - Update template with preserved content
+Prepares raw diff content for LLM consumption.
 
-**Features**:
+**Filtering** — files matching any ignore pattern are dropped:
 
-- ✅ Extracts and preserves user-written PR descriptions
-- ✅ Moves raw descriptions to Developer Notes section
-- ✅ Generates generic checklist based on markdown file changes:
-  - ✅ Documentation updated / modified (checked only when `*.md` files changed)
-- ✅ Preserves developer notes and checklist items
-- ✅ Uses HTML comments as markers (`<!-- AI:START -->...<!-- AI:END -->`)
-- ✅ Generates complete template on first run (4 sections)
-- ✅ Intelligent content extraction using regex patterns
-- ✅ Maintains consistent spacing and structure
-- ✅ Handles edge cases (empty body, missing sections, no file data)
+```
+*.lock, node_modules/, dist/, build/, *.min.js, binary formats (.png, .jpg, .pdf, .zip, …)
+```
 
-**Content Preservation Logic**:
+**Language detection** — maps file extension to a language name string (e.g. `.ts` → `"typescript"`).
 
-1. **Extract** - Raw description from PR body
-2. **Merge** - Raw description + existing developer notes
-3. **Generate** - Generic checklist based on markdown files changed
-4. **Update** - Replace only AI section, preserve everything else
-5. **Result** - Zero data loss, smart suggestions
+**Truncation** — when total line count exceeds `maxDiffLines`, chunks are sorted by priority (modified > added > renamed > removed, then by change size) and trimmed to fit.
 
-**PR Body Template Structure**:
+### LLM Client (`src/llm/llm-client.ts`)
+
+Abstracts provider differences. Supports Groq, OpenAI, Gemini, and any OpenAI-compatible endpoint. When `provider` is `"auto"`, the provider is inferred from the model name prefix.
+
+- **Retry policy:** up to 3 attempts with exponential backoff (1s, 2s, 4s between attempts)
+- **JSON repair:** attempts to extract valid JSON from fenced code blocks or partial responses before failing
+- **Gemini-specific:** uses the `responseSchema` field in `generationConfig` to enforce structured output and sets `thinkingBudget: 0` to avoid latency from chain-of-thought tokens
+
+### Formatter (`src/utils/formatter.ts`)
+
+Converts the LLM `LLMOutput` object to Markdown and manages the PR body template.
+
+**Template structure:**
 
 ```markdown
-## 📌 Summary
-
-[User summary section]
+## Summary
 
 <!-- AI:START -->
 
-## 🤖 AI Generated Summary
+## AI Generated Summary
 
-[AI content - gets updated]
+...
 
 <!-- AI:END -->
 
 ---
 
-## 🧑‍💻 Developer Notes
+## Developer Notes
 
-[User content - ALWAYS preserved]
+...
 
 ---
 
-## ✅ Checklist
+## Checklist
 
-[User items - NEVER overwritten]
+- [ ] Documentation updated / modified
 ```
 
-**Content Preservation Logic**:
+**Content preservation logic on each run:**
 
-- Extracts existing developer notes before update
-- Extracts existing checklist before update
-- Replaces only AI section between markers
-- Rebuilds template with preserved content
-- Results in zero data loss on updates
+1. Extract any raw description that existed before the first run
+2. Extract existing Developer Notes
+3. Merge: raw description prepended to Developer Notes (raw description wins if both exist)
+4. Generate checklist based on `*.md` file presence in the changed file list
+5. Replace only the content between `<!-- AI:START -->` and `<!-- AI:END -->`
+6. Rebuild the full template with the preserved content in place
 
-### 6. **State Manager** (`src/state/state-manager.ts`)
+**Checklist generation:**
 
-**Responsibility**: Persist processing state for idempotency
+| Condition                            | Item state                               |
+| ------------------------------------ | ---------------------------------------- |
+| At least one `*.md` file in the diff | `- [x] Documentation updated / modified` |
+| No `*.md` files                      | `- [ ] Documentation updated / modified` |
 
-**Storage**: Local file (`.ai-pr-state.json`)
+### State Manager (`src/state/state-manager.ts`)
 
-**Tracks**:
-
-- Last processed commit SHA
-- Processing timestamp
-- PR number
-
-**Ensures**: PR not reprocessed if no new commits
-
-## Data Flow
-
-### Step-by-Step Execution
-
-```
-1. GitHub sends webhook (pull_request event)
-   ↓
-2. Action reads inputs (tokens, model, etc.)
-   ↓
-3. Fetch PR details: title, body, commits, files
-   ↓
-4. Check state: was this commit already processed?
-   └─→ Yes? Exit (idempotency)
-   └─→ No? Continue
-   ↓
-5. Decide: incremental or full diff mode
-   ├─→ First push: full diff
-   ├─→ New commits + small changes: incremental
-   └─→ New commits + large changes: full
-   ↓
-6. Process diff:
-   - Parse into file chunks
-   - Filter ignored files
-   - Detect languages
-   - Truncate if necessary
-   ↓
-7. Prepare LLM context:
-   - Include filtered chunks
-   - Add commit messages
-   - Add repository metadata
-   ↓
-8. Call LLM API:
-   - Generate summary
-   - Extract key points
-   - Identify highlights
-   - Detect breaking changes
-   ↓
-9. Format as Markdown:
-   - Clean structure
-   - Consistent spacing
-   - Clear sections
-   ↓
-10. Update PR body:
-    - Replace existing AI section (if exists)
-    - Or append new AI section
-    - Preserve developer notes
-    ↓
-11. Save state:
-    - Update last processed SHA
-    - Save to file
-    ↓
-12. Done! PR description updated
-```
-
-## Configuration
-
-### Environment Variables
+Reads and writes a small JSON file (`.ai-pr-state.json`) to the working directory. Tracked fields:
 
 ```typescript
 {
-  githubToken: string;          // GitHub API token
-  llmApiKey: string;            // LLM provider API key
-  llmProvider: string;          // Provider: auto|groq|openai|gemini|openai-compatible
-  llmApiBaseUrl?: string;       // Custom endpoint (optional)
-  aiModel: string;              // Model name (e.g., openai/gpt-oss-120b)
-  maxDiffLines: number;         // Truncate threshold (default: 5000)
-  enableIncrementalDiffProcessing: boolean; // Use incremental mode
-  debug: boolean;               // Verbose logging
+  lastProcessedSha: string | null;
+  processedAt: string; // ISO 8601
+  prNumber: number | null;
 }
 ```
 
-## Testing Strategy
+If the head commit SHA matches `lastProcessedSha`, the orchestrator exits early. This prevents duplicate processing when the workflow is re-triggered without new commits.
 
-### Unit Tests
+### Logger (`src/utils/logger.ts`)
 
-- **DiffProcessor**: Filtering, truncation, language detection
-- **Formatter**: Markdown generation, section replacement
-- **StateManager**: State persistence and retrieval
+Provides timestamped, leveled output to stdout/stderr. Debug messages are suppressed unless `debugMode` is `true` or `process.env.DEBUG === "true"`.
 
-### Integration Testing
+---
 
-- Full pipeline with mock GitHub/LLM APIs
-- Real API calls in CI/CD before release
+## Data flow
 
-### Coverage Goals
+```
+1. GitHub sends webhook
+   |
+2. Action reads inputs (tokens, provider, model, limits)
+   |
+3. Fetch PR: title, body, commits, changed files
+   |
+4. State check: has this SHA been processed?
+   +-- Yes --> exit (idempotent)
+   +-- No  --> continue
+   |
+5. Choose diff mode:
+   +-- First run             --> full diff (base..head)
+   +-- Subsequent, small delta --> incremental diff (lastSHA..head)
+   +-- Subsequent, large delta --> fall back to full diff (>= 30% threshold)
+   |
+6. Process diff:
+   - Parse into per-file chunks
+   - Filter ignored files
+   - Detect language
+   - Truncate to maxDiffLines
+   |
+7. Prepare LLM context:
+   - Filtered chunks
+   - Commit messages (up to 10)
+   - Repository metadata
+   - PR statistics
+   |
+8. Call LLM (with retry):
+   - System + user prompt
+   - Expect JSON: { summary, keyPoints, highlights, breaking }
+   |
+9. Format: JSON --> Markdown AI section
+   |
+10. Merge into PR body:
+    - Preserve Developer Notes and Checklist
+    - Replace AI:START..AI:END content only
+    |
+11. Update PR via GitHub API
+    |
+12. Save state: write new SHA to .ai-pr-state.json
+    |
+13. Done
+```
 
-- Core logic: 80%+ coverage
-- Edge cases: All major scenarios tested
-- Error handling: Failure modes validated
+---
 
-## Performance Considerations
+## Configuration surface
 
-### Optimization
+All inputs are passed through the action's `with:` block and resolved in step 1:
 
-- **Diff Truncation**: Large diffs processed efficiently
-- **Incremental Mode**: Delta processing for small changes
-- **Lazy Loading**: Clients initialized on-demand
-- **Caching**: State file prevents reprocessing
+```typescript
+{
+  githubToken: string;
+  llmApiKey: string;
+  llmProvider: "auto" | "groq" | "openai" | "openai-compatible" | "gemini";
+  llmApiBaseUrl?: string;
+  aiModel: string;
+  maxDiffLines: number;                    // default: 5000
+  enableIncrementalDiffProcessing: boolean; // default: true
+  debug: boolean;                          // default: false
+}
+```
 
-### Scalability
+---
 
-- Handles PRs with 100+ files
-- Supports diffs up to 5000+ lines
-- Manages multiple commits efficiently
+## Testing strategy
+
+### Unit tests
+
+Cover the three most complex modules:
+
+- `DiffProcessor` — filtering logic, truncation priority, language detection
+- `Formatter` — Markdown generation, section replacement, content extraction edge cases
+- `StateManager` — persistence, reload, reset, corrupt-file recovery
+
+### Integration tests
+
+Handled by `action-test.yml` and `action-test-groq.yml` workflows. These run the full action against a real PR when the corresponding API key secret is present.
+
+### Coverage targets
+
+- Core logic: 80%+ line coverage
+- All happy paths and primary error paths tested
+- Edge cases: empty diff, missing state file, malformed LLM response, corrupt PR body
+
+---
 
 ## Security
 
-### Access Control
+- GitHub token permissions are scoped to `pull-requests: write` and `contents: read`
+- LLM API keys are stored in GitHub Actions secrets, never logged
+- Diff content is sent to the configured LLM provider — consider data sensitivity before enabling on private repositories
+- The `dist/` bundle is committed to the repository; verify its integrity before upgrading
 
-- ✅ GitHub token scoped to minimal permissions
-- ✅ LLM API key encrypted in GitHub secrets
-- ✅ No sensitive data logged
-
-### Input Validation
-
-- ✅ Provider validation (whitelist)
-- ✅ Token format checks
-- ✅ Diff content sanitization
+---
 
 ## Deployment
 
-### GitHub Actions
+The action is distributed as a committed `dist/index.js` bundle produced by `@vercel/ncc`. This bundles all dependencies into a single file, which GitHub Actions executes directly using Node.js 20.
 
-- Bundled with `@vercel/ncc`
-- Single file distribution (`dist/index.js`)
-- Source maps included for debugging
+Before each release:
 
-### Release Process
-
-1. Create PR with changes
-2. Tests run automatically
-3. Merge to main
-4. Create Git tag (v1.x.x)
-5. GitHub Actions builds and publishes
+1. Run `npm run build`
+2. Commit the updated `dist/` directory
+3. Tag and publish the release

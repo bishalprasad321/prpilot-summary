@@ -86,7 +86,10 @@ describe("Formatter", () => {
     ].join("\n");
 
     const firstUpdate = formatter.replaceAISection(body, "New summary");
-    const secondUpdate = formatter.replaceAISection(firstUpdate, "Newer summary");
+    const secondUpdate = formatter.replaceAISection(
+      firstUpdate,
+      "Newer summary"
+    );
 
     expect(secondUpdate).toBe(
       formatter.replaceAISection(secondUpdate, "Newer summary")
@@ -121,7 +124,10 @@ describe("Formatter", () => {
     ].join("\n");
 
     const firstUpdate = formatter.replaceAISection(body, "New summary");
-    const secondUpdate = formatter.replaceAISection(firstUpdate, "Newer summary");
+    const secondUpdate = formatter.replaceAISection(
+      firstUpdate,
+      "Newer summary"
+    );
 
     expect(secondUpdate).toContain("## 🧑‍💻 Developer Notes");
     expect(secondUpdate).toContain("- Validated manually in staging");
