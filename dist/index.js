@@ -1269,6 +1269,8 @@ exports.Formatter = void 0;
 const logger_js_1 = __nccwpck_require__(8532);
 const AI_SECTION_START = "<!-- AI:START -->";
 const AI_SECTION_END = "<!-- AI:END -->";
+const DEFAULT_DEV_NOTES = "- Add any extra context here";
+const DEFAULT_CHECKLIST = "- [ ] Documentation updated / modified";
 class Formatter {
     constructor() {
         this.logger = new logger_js_1.Logger();
@@ -1292,8 +1294,7 @@ class Formatter {
             return null;
         }
         // If no template exists, entire body (excluding markers) is the description
-        if (!prBody.includes(AI_SECTION_START) &&
-            !prBody.includes("## 🧑‍💻 Developer Notes")) {
+        if (!prBody.includes(AI_SECTION_START) && !this.hasDeveloperNotes(prBody)) {
             return prBody.trim();
         }
         return null;
@@ -1306,6 +1307,9 @@ class Formatter {
         const hasMarkdownChanges = files.some((f) => f.filename.toLowerCase().endsWith(".md"));
         return `${hasMarkdownChanges ? "- [x]" : "- [ ]"} Documentation updated / modified`;
     }
+    hasDeveloperNotes(prBody) {
+        return /^##\s*(?:🧑‍💻\s*)?Developer Notes\s*$/im.test(prBody);
+    }
     /**
      * Extract existing developer notes from PR body
      * Captures any content between "## 🧑‍💻 Developer Notes" and the next section
@@ -1313,14 +1317,14 @@ class Formatter {
      * Returns empty content if no developer notes exist
      */
     extractExistingDeveloperNotes(prBody) {
-        const devNotesMatch = prBody.match(/## 🧑‍💻 Developer Notes\n([\s\S]*?)(?=\n---\s*(?:\n|$)|\n##|$)/);
+        const devNotesMatch = prBody.match(/^##\s*(?:🧑‍💻\s*)?Developer Notes\s*$\n([\s\S]*?)(?=\n---\s*(?:\n|$)|\n##|$)/im);
         if (!devNotesMatch || !devNotesMatch[1]) {
-            return "- Add any extra context here";
+            return DEFAULT_DEV_NOTES;
         }
         // Trim the extracted content and preserve its structure
         const content = devNotesMatch[1].trim();
         // If the existing content is just the placeholder, replace it
-        if (content === "- Add any extra context here") {
+        if (content === DEFAULT_DEV_NOTES) {
             return content;
         }
         return content;
@@ -1334,7 +1338,7 @@ class Formatter {
     extractExistingChecklist(prBody) {
         const checklistMatch = prBody.match(/## ✅ Checklist\n([\s\S]*?)(?=\n---\s*(?:\n|$)|\n##|$)/);
         if (!checklistMatch || !checklistMatch[1]) {
-            return "- [ ] Documentation updated / modified";
+            return DEFAULT_CHECKLIST;
         }
         return checklistMatch[1].trim();
     }
@@ -1400,9 +1404,11 @@ class Formatter {
         const existingDevNotes = this.extractExistingDeveloperNotes(existingBody);
         // Merge raw description with existing dev notes
         let mergedDevNotes = existingDevNotes;
-        if (rawDescription && rawDescription !== "- Add any extra context here") {
-            // Prepend raw description to dev notes
-            mergedDevNotes = `${rawDescription}\n\n${existingDevNotes}`.trim();
+        if (rawDescription && rawDescription !== DEFAULT_DEV_NOTES) {
+            mergedDevNotes =
+                existingDevNotes === DEFAULT_DEV_NOTES
+                    ? rawDescription
+                    : `${rawDescription}\n\n${existingDevNotes}`.trim();
         }
         // Generate dynamic checklist based on files (or use existing)
         const dynamicChecklist = files
@@ -1410,7 +1416,7 @@ class Formatter {
             : this.extractExistingChecklist(existingBody);
         if (!existingBody) {
             // Empty body: create complete template with default values
-            return this.createCompleteTemplate(newAIContent, mergedDevNotes || "- Add any extra context here", dynamicChecklist);
+            return this.createCompleteTemplate(newAIContent, mergedDevNotes || DEFAULT_DEV_NOTES, dynamicChecklist);
         }
         // Check if AI section already exists
         if (existingBody.includes(AI_SECTION_START) &&

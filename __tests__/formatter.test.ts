@@ -99,6 +99,35 @@ describe("Formatter", () => {
     expect((secondUpdate.match(/\n---\n/g) || []).length).toBe(2);
   });
 
+  it("preserves user-edited developer notes without restoring the placeholder", () => {
+    const body = [
+      "## 📌 Summary",
+      "",
+      "<!-- AI:START -->",
+      "Old summary",
+      "<!-- AI:END -->",
+      "",
+      "---",
+      "",
+      "## Developer Notes",
+      "",
+      "- Validated manually in staging",
+      "",
+      "---",
+      "",
+      "## ✅ Checklist",
+      "",
+      "- [ ] Documentation updated / modified",
+    ].join("\n");
+
+    const firstUpdate = formatter.replaceAISection(body, "New summary");
+    const secondUpdate = formatter.replaceAISection(firstUpdate, "Newer summary");
+
+    expect(secondUpdate).toContain("## 🧑‍💻 Developer Notes");
+    expect(secondUpdate).toContain("- Validated manually in staging");
+    expect(secondUpdate).not.toContain("- Add any extra context here");
+  });
+
   it("creates complete template with all sections when no AI section exists", () => {
     const body = [
       "## Overview",

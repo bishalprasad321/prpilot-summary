@@ -14,6 +14,8 @@ import { LLMOutput, FileChange } from "../utils/types.js";
 
 const AI_SECTION_START = "<!-- AI:START -->";
 const AI_SECTION_END = "<!-- AI:END -->";
+const DEFAULT_DEV_NOTES = "- Add any extra context here";
+const DEFAULT_CHECKLIST = "- [ ] Documentation updated / modified";
 
 export class Formatter {
   private logger: Logger;
@@ -43,10 +45,7 @@ export class Formatter {
     }
 
     // If no template exists, entire body (excluding markers) is the description
-    if (
-      !prBody.includes(AI_SECTION_START) &&
-      !prBody.includes("## 🧑‍💻 Developer Notes")
-    ) {
+    if (!prBody.includes(AI_SECTION_START) && !this.hasDeveloperNotes(prBody)) {
       return prBody.trim();
     }
 
@@ -65,6 +64,10 @@ export class Formatter {
     return `${hasMarkdownChanges ? "- [x]" : "- [ ]"} Documentation updated / modified`;
   }
 
+  private hasDeveloperNotes(prBody: string): boolean {
+    return /^##\s*(?:🧑‍💻\s*)?Developer Notes\s*$/im.test(prBody);
+  }
+
   /**
    * Extract existing developer notes from PR body
    * Captures any content between "## 🧑‍💻 Developer Notes" and the next section
@@ -73,18 +76,18 @@ export class Formatter {
    */
   private extractExistingDeveloperNotes(prBody: string): string {
     const devNotesMatch = prBody.match(
-      /## 🧑‍💻 Developer Notes\n([\s\S]*?)(?=\n---\s*(?:\n|$)|\n##|$)/
+      /^##\s*(?:🧑‍💻\s*)?Developer Notes\s*$\n([\s\S]*?)(?=\n---\s*(?:\n|$)|\n##|$)/im
     );
 
     if (!devNotesMatch || !devNotesMatch[1]) {
-      return "- Add any extra context here";
+      return DEFAULT_DEV_NOTES;
     }
 
     // Trim the extracted content and preserve its structure
     const content = devNotesMatch[1].trim();
 
     // If the existing content is just the placeholder, replace it
-    if (content === "- Add any extra context here") {
+    if (content === DEFAULT_DEV_NOTES) {
       return content;
     }
 
@@ -103,7 +106,7 @@ export class Formatter {
     );
 
     if (!checklistMatch || !checklistMatch[1]) {
-      return "- [ ] Documentation updated / modified";
+      return DEFAULT_CHECKLIST;
     }
 
     return checklistMatch[1].trim();
@@ -187,9 +190,11 @@ export class Formatter {
 
     // Merge raw description with existing dev notes
     let mergedDevNotes = existingDevNotes;
-    if (rawDescription && rawDescription !== "- Add any extra context here") {
-      // Prepend raw description to dev notes
-      mergedDevNotes = `${rawDescription}\n\n${existingDevNotes}`.trim();
+    if (rawDescription && rawDescription !== DEFAULT_DEV_NOTES) {
+      mergedDevNotes =
+        existingDevNotes === DEFAULT_DEV_NOTES
+          ? rawDescription
+          : `${rawDescription}\n\n${existingDevNotes}`.trim();
     }
 
     // Generate dynamic checklist based on files (or use existing)
@@ -201,7 +206,7 @@ export class Formatter {
       // Empty body: create complete template with default values
       return this.createCompleteTemplate(
         newAIContent,
-        mergedDevNotes || "- Add any extra context here",
+        mergedDevNotes || DEFAULT_DEV_NOTES,
         dynamicChecklist
       );
     }
