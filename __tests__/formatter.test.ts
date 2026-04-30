@@ -48,7 +48,7 @@ describe("Formatter", () => {
       "---",
       "",
       "## ✅ Checklist",
-      "- [x] Tests added",
+      "- [x] Custom release check",
     ].join("\n");
 
     const updated = formatter.replaceAISection(body, "New summary");
@@ -61,7 +61,42 @@ describe("Formatter", () => {
     expect(updated).toContain("## 🧑‍💻 Developer Notes");
     expect(updated).toContain("- Keep this note");
     expect(updated).toContain("## ✅ Checklist");
-    expect(updated).toContain("- [x] Tests added");
+    expect(updated).toContain("- [x] Custom release check");
+  });
+
+  it("does not accumulate separators below developer notes on repeated updates", () => {
+    const body = [
+      "## 📌 Summary",
+      "",
+      "<!-- AI:START -->",
+      "Old summary",
+      "<!-- AI:END -->",
+      "",
+      "---",
+      "",
+      "## 🧑‍💻 Developer Notes",
+      "",
+      "- Add any extra context here",
+      "",
+      "---",
+      "",
+      "## ✅ Checklist",
+      "",
+      "- [ ] Documentation updated / modified",
+    ].join("\n");
+
+    const firstUpdate = formatter.replaceAISection(body, "New summary");
+    const secondUpdate = formatter.replaceAISection(firstUpdate, "Newer summary");
+
+    expect(secondUpdate).toBe(
+      formatter.replaceAISection(secondUpdate, "Newer summary")
+    );
+    expect(
+      secondUpdate.match(
+        /## 🧑‍💻 Developer Notes\n\n- Add any extra context here\n\n---\n\n## ✅ Checklist/
+      )
+    ).not.toBe(null);
+    expect((secondUpdate.match(/\n---\n/g) || []).length).toBe(2);
   });
 
   it("creates complete template with all sections when no AI section exists", () => {
@@ -109,15 +144,8 @@ describe("Formatter", () => {
     expect(updated).toContain("<!-- AI:END -->");
   });
 
-  it("generates dynamic checklist based on file changes", () => {
+  it("checks documentation when markdown files change", () => {
     const files: FileChange[] = [
-      {
-        filename: "__tests__/formatter.test.ts",
-        status: "modified",
-        additions: 50,
-        deletions: 10,
-        changes: 60,
-      },
       {
         filename: "docs/README.md",
         status: "modified",
@@ -129,12 +157,14 @@ describe("Formatter", () => {
 
     const updated = formatter.replaceAISection("", "AI summary", files);
 
-    // Should mark items as checked based on file changes
-    expect(updated).toContain("- [x] Tests added");
-    expect(updated).toContain("- [x] Documentation updated");
+    expect(updated).toContain("- [x] Documentation updated / modified");
+    expect(updated).not.toContain("Tests added");
+    expect(updated).not.toContain("Configuration validated");
+    expect(updated).not.toContain("Performance reviewed");
+    expect(updated).not.toContain("Breaking changes documented");
   });
 
-  it("adds performance review item for large changes", () => {
+  it("leaves documentation unchecked when no markdown files change", () => {
     const files: FileChange[] = [
       {
         filename: "src/utils/formatter.ts",
@@ -147,24 +177,7 @@ describe("Formatter", () => {
 
     const updated = formatter.replaceAISection("", "AI summary", files);
 
-    // Should add performance review item for large diffs (>500 changes)
-    expect(updated).toContain("- [ ] Performance reviewed");
-  });
-
-  it("adds breaking changes item for significant deletions", () => {
-    const files: FileChange[] = [
-      {
-        filename: "src/old-module.ts",
-        status: "removed",
-        additions: 0,
-        deletions: 150,
-        changes: 150,
-      },
-    ];
-
-    const updated = formatter.replaceAISection("", "AI summary", files);
-
-    // Should add breaking changes item for large deletions (>100 lines)
-    expect(updated).toContain("- [ ] Breaking changes documented");
+    expect(updated).toContain("- [ ] Documentation updated / modified");
+    expect(updated).not.toContain("Performance reviewed");
   });
 });

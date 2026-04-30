@@ -236,8 +236,7 @@ Summary of code changes and impact.
 
 ## ✅ Checklist
 
-- [ ] Tests added
-- [ ] Documentation updated
+- [ ] Documentation updated / modified
 ```
 
 ### Section Behavior
@@ -398,7 +397,7 @@ class Formatter {
   replaceAISection(
     existingBody: string,
     newAIContent: string,
-    files?: FileChange[] // Optional: file changes for dynamic checklist
+    files?: FileChange[] // Optional: file changes for generic checklist
   ): string;
 
   getAISection(body: string): string | null;
@@ -408,20 +407,18 @@ class Formatter {
 **Smart Features** (when `files` parameter provided):
 
 - 📝 Extracts pre-written PR descriptions and moves to Developer Notes
-- ✅ Generates dynamic checklist based on file types changed
+- ✅ Generates a generic checklist based on markdown file changes
 - 🛡️ Preserves all user content (dev notes, checklist edits)
 - 🔄 Only regenerates AI section on PR updates
 
-**Dynamic Checklist Examples:**
+**Generic Checklist Example:**
 
 ```typescript
-// Files changed: __tests__/auth.test.ts, docs/README.md
+// Files changed: docs/README.md
 formatter.replaceAISection(body, aiContent, files);
 
 // Generates checklist:
-// - [x] Tests added       (detected test files)
-// - [x] Documentation updated (detected .md files)
-// - [ ] Configuration validated (only if .json/.yml changed)
+// - [x] Documentation updated / modified
 ```
 
 #### StateManager

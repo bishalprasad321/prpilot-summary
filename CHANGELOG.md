@@ -13,12 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default Groq model set to `openai/gpt-oss-120b`
 - Separate Groq integration workflow using `secrets.GROQ_API_KEY`
 - **Smart Content Preservation**: Automatically extract and preserve user-written PR descriptions to Developer Notes section
-- **Dynamic Checklist Generation**: Auto-generate and intelligently check PR checklist items based on file changes:
-  - ✅ Tests added (when test files are modified)
-  - ✅ Documentation updated (when markdown/doc files are modified)
-  - ⬜ Configuration validated (when config files are modified)
-  - ⬜ Performance reviewed (for large diffs >500 changes)
-  - ⬜ Breaking changes documented (for large deletions >100 lines)
+- **Generic Checklist Generation**: Auto-generate a project-agnostic documentation checkbox:
+  - ✅ Documentation updated / modified (checked only when `*.md` files are modified)
 - **Workflow Refactoring**: Separated monolithic GitHub Actions workflow into 3 purpose-driven workflows:
   - `ci.yml`: Fast core quality checks (required, ~2-3 min)
   - `action-test.yml`: Integration testing (optional, ~1-2 min)
@@ -29,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Improved `replaceAISection()` method to accept optional file list for dynamic checklist generation
+- Improved `replaceAISection()` method to accept optional file list for generic checklist generation
 - Enhanced formatter with intelligent content extraction and merging
 - Updated documentation (README, DEVELOPMENT, API, Architecture, QUICKSTART) to reflect new features
 

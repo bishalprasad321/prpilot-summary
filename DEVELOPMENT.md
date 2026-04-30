@@ -226,7 +226,7 @@ Attempt 4: Wait 4s
 - `replaceAISection()` - Smart section replacement with content extraction
 - `getAISection()` - Extract AI section for validation
 - `extractRawPRDescription()` - Extract user-written descriptions (private)
-- `generateDynamicChecklist()` - Create smart checklists based on files (private)
+- `generateDynamicChecklist()` - Create a generic documentation checklist based on markdown files (private)
 
 **Content Extraction Logic**:
 
@@ -236,20 +236,17 @@ Attempt 4: Wait 4s
    "This fixes auth bug #42" → Moved to Developer Notes
    ```
 
-2. **Generate Dynamic Checklist** - Based on file changes:
+2. **Generate Generic Checklist** - Based on markdown file changes:
 
    ```
-   Test files (*.test.ts, __tests__/) → ✅ Tests added (checked)
-   Docs (.md, docs/, README) → ✅ Documentation updated (checked)
-   Config files (.json, .yml) → ⬜ Configuration validated (added)
-   Large diffs (>500 changes) → ⬜ Performance reviewed (added)
-   Large deletions (>100 lines) → ⬜ Breaking changes documented (added)
+   *.md files changed → ✅ Documentation updated / modified (checked)
+   No *.md files changed → ⬜ Documentation updated / modified
    ```
 
 3. **Merge Content** - Preserve all user content:
    ```
    Raw Description + Existing Dev Notes → Developer Notes section
-   Dynamic + User Edits → Checklist section
+   Generic checklist + User Edits → Checklist section
    AI Content → AI section (between markers)
    ```
 
@@ -267,7 +264,7 @@ Attempt 4: Wait 4s
 2. If AI section exists → replace between markers
 3. If no AI section → create complete template
 4. Always preserve developer notes and checklist edits
-5. Generate checklist dynamically based on files changed
+5. Generate checklist dynamically based on markdown files changed
 
 ### logger.ts
 

@@ -99,7 +99,7 @@ When you create/update a PR:
    - Summary section (📌)
    - AI Generated Summary (🤖) with insights
    - Developer Notes (🧑‍💻) - your pre-written description is extracted here!
-   - Smart Checklist (✅) - auto-checked based on files changed
+   - Generic Checklist (✅) - documentation checkbox auto-checked for `*.md` changes
 4. 💾 Updates PR description automatically
 5. 👀 Reviewers get context instantly
 ```
@@ -109,12 +109,8 @@ When you create/update a PR:
 ✨ **What makes it special:**
 
 - **If you write a description first**: It gets extracted and moved to "Developer Notes" (not lost!)
-- **Smart Checklist**:
-  - ✅ Tests added (if test files were modified)
-  - ✅ Documentation updated (if .md files were modified)
-  - ⬜ Configuration validated (if .json/.yml files were modified)
-  - ⬜ Performance reviewed (if changes are >500 lines)
-  - ⬜ Breaking changes documented (if deletions are >100 lines)
+- **Generic Checklist**:
+  - ✅ Documentation updated / modified (checked only if `*.md` files were modified)
 - **Idempotent**: Safe to edit and re-run multiple times
 - **Content Preservation**: Your notes and checklist edits never get lost
 
@@ -151,8 +147,7 @@ Added token refresh mechanism with 5 min expiry.
 
 ## ✅ Checklist
 
-- [ ] Tests added
-- [ ] Documentation updated
+- [ ] Documentation updated / modified
 
 ### Key Points
 

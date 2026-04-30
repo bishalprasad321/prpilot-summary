@@ -11,7 +11,7 @@ Analyzes your code changes and produces meaningful summaries, key points, and in
 - 🤖 **AI-Powered Analysis** - Supports Groq, Gemini, OpenAI, and OpenAI-compatible models
 - 📋 **Complete Template** - Generates professional PR structure with Summary, Developer Notes, and Checklist
 - 🛡️ **Smart Content Preservation** - Extracts your existing PR description and preserves it in Developer Notes
-- 📝 **Dynamic Checklist** - Auto-generates checklist items based on file types changed (tests, docs, configs, etc.)
+- 📝 **Generic Checklist** - Tracks documentation updates without assuming a specific tech stack
 - 🔄 **Incremental Processing** - Handles large diffs efficiently
 - ⚡ **Idempotent** - Won't reprocess same commits
 - 🎯 **Smart Filtering** - Ignores noise (node_modules, build artifacts, lock files)
@@ -194,10 +194,7 @@ The action generates a complete, professional PR template with **intelligent con
 
 ## ✅ Checklist
 
-- [x] Tests added (auto-marked if test files changed)
-- [x] Documentation updated (auto-marked if docs changed)
-- [ ] Configuration validated (added if config files changed)
-- [ ] Performance reviewed (added for large diffs >500 changes)
+- [x] Documentation updated / modified (auto-marked only when `*.md` files changed)
 ```
 
 **🛡️ Smart Content Preservation:**
@@ -205,18 +202,18 @@ The action generates a complete, professional PR template with **intelligent con
 - **Pre-written descriptions** - Extracted from initial PR body and moved to Developer Notes ✅
 - **AI Section** (`<!-- AI:START -->...<!-- AI:END -->`) - Updated on each PR change
 - **Developer Notes** - Your content is **always preserved** ✅
-- **Dynamic Checklist** - Auto-generated based on file changes, never loses user edits ✅
+- **Generic Checklist** - Auto-generated from project-agnostic signals, never loses user edits ✅
 
 **How It Works:**
 
 1. **First Run (Empty Description)**:
    - Creates template with defaults
-   - Generates checklist based on files changed
+   - Generates checklist based on markdown files changed
 
 2. **First Run (With User Description)**:
    - Extracts your description
    - Moves it to Developer Notes
-   - Generates smart checklist based on file types
+   - Generates generic checklist based on markdown files
 
 3. **User Edits**:
    - Add/edit notes and checklist items freely
@@ -227,15 +224,12 @@ The action generates a complete, professional PR template with **intelligent con
    - Your description and edits stay intact
    - Idempotent: safe to run multiple times
 
-**Dynamic Checklist Examples:**
+**Generic Checklist Behavior:**
 
-| File Changed                      | Auto-Generated Items                     |
-| --------------------------------- | ---------------------------------------- |
-| `__tests__/*.ts` or `*.test.ts`   | ✅ `Tests added` (checked)               |
-| `docs/`, `*.md`, `README`         | ✅ `Documentation updated` (checked)     |
-| `.json`, `.yml`, `.yaml`, `.toml` | ⬜ `Configuration validated` (added)     |
-| 500+ total changes                | ⬜ `Performance reviewed` (added)        |
-| 100+ lines deleted                | ⬜ `Breaking changes documented` (added) |
+| File Changed | Auto-Generated Item |
+| ------------ | ------------------- |
+| `*.md`       | ✅ `Documentation updated / modified` |
+| Anything else | ⬜ `Documentation updated / modified` |
 
 ## Example Output
 
