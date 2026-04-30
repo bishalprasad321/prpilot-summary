@@ -6,24 +6,26 @@ Accepted
 
 ## Context
 
-When a PR is updated multiple times, the AI-generated description section is replaced. However, the markdown structure was degrading with each update:
+When a PR receives new commits, the action replaces the AI-generated section. During early development, repeated replacements caused progressive degradation of the PR body:
 
-- Sections were squishing together
-- Nested heading structure caused formatting issues
-- Whitespace management was inconsistent
+- Sections ran together with insufficient whitespace between them
+- Nested heading structure (`##` followed by `###`) conflicted with some Markdown renderers
+- Spacing around the `<!-- AI:START -->` / `<!-- AI:END -->` markers was inconsistent, causing extra blank lines or missing separators to accumulate with each run
 
-The core problem: nested markdown structure (`##` heading followed by `###` subheadings) combined with improper spacing around replacement markers.
+The root issue was that the replacement logic was manipulating raw strings rather than building the output from a clean structure on every run.
 
 ## Decision
 
-### 1. Flatten Markdown Structure
+Three changes were made:
 
-Remove nested heading hierarchy:
+### 1. Flatten the heading structure
+
+Remove nested subheadings inside the AI section and replace them with bold labels:
 
 ```markdown
-❌ Before (problematic):
+# Before (problematic)
 
-## 🤖 AI Generated Summary
+## AI Generated Summary
 
 ### Summary
 
@@ -33,91 +35,74 @@ Content here
 
 - Point 1
 
-✅ After (clean):
+# After (stable)
 
-## 🤖 AI Generated Summary
+## AI Generated Summary
 
 Content here
-
 **Key Points:**
 
 - Point 1
 ```
 
-### 2. Implement Array-Based Section Building
+Flat structure avoids heading hierarchy issues and is less likely to cause rendering inconsistencies across different Markdown renderers.
+
+### 2. Build output from an array of lines
+
+Instead of replacing substrings in the existing body, each section of the template is assembled from an array and joined with `\n`:
 
 ```typescript
 const sections: string[] = [];
-sections.push("## 🤖 AI Generated Summary");
+sections.push("## AI Generated Summary");
 sections.push("");
 sections.push(summary);
 sections.push("");
-// ... add other sections
+if (keyPoints.length > 0) {
+  sections.push("**Key Points:**");
+  keyPoints.forEach((p) => sections.push(`- ${p}`));
+  sections.push("");
+}
 return sections.join("\n");
 ```
 
-Benefits:
+This guarantees consistent spacing regardless of what the previous body contained.
 
-- Guaranteed consistent spacing
-- Easy to maintain section order
-- Clear section boundaries
+### 3. Extract content before rebuilding, not after
 
-### 3. Enforce Proper Spacing Around Markers
+When replacing the AI section, the formatter:
 
-```typescript
-// In replaceSection():
-const before = body.substring(0, startIdx).trimEnd();
-const after = body.substring(endIdx + AI_SECTION_END.length).trimStart();
+1. Locates the `<!-- AI:START -->` marker and takes everything before it as the "before" block
+2. Extracts Developer Notes and Checklist content separately
+3. Assembles a fresh, complete template from the four components: before block, new AI content, extracted notes, extracted checklist
 
-// Ensure 2-newline spacing
-result += "\n\n"; // Before marker
-result += AI_SECTION_START + "\n" + newContent + "\n" + AI_SECTION_END;
-result += "\n\n"; // After marker
-```
+This means the output is structurally identical on every run, not the result of patching the previous output.
 
 ## Rationale
 
-### Why Array-Based Approach?
+String replacement on Markdown is fragile. Minor whitespace differences in the source body can cause regex-based extraction to fail or introduce extra blank lines. Building from an array on every write eliminates an entire class of formatting drift bugs.
 
-1. **Predictability**: Arrays guarantee order and structure
-2. **Maintainability**: Adding/removing sections is straightforward
-3. **Debuggability**: Easy to see exact spacing and ordering
+The array approach also makes it straightforward to add, remove, or reorder sections in future — changing the template is a matter of editing the array construction code rather than adjusting multiple regex patterns.
 
-### Why Flattened Structure?
+### Alternatives considered
 
-1. **Simplicity**: No nested heading complexity
-2. **Consistency**: Works well with Markdown parsers
-3. **Stability**: Resistant to formatting degradation
-
-### Why Explicit Spacing?
-
-1. **Prevents Squishing**: Consistent spacing prevents text collision
-2. **Professional Look**: Two blank lines between major sections is standard
-3. **Multiple Updates**: Survives repeated replacements
+| Approach                                             | Reason rejected                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------ |
+| Normalize whitespace around markers after each write | Treats the symptom rather than the cause; fragile to edge cases    |
+| Parse the Markdown into a structured AST             | Too complex given the simple, predictable template structure       |
+| Keep nested headings and fix spacing manually        | Would require tracking heading depth context, which is error-prone |
 
 ## Consequences
 
-### Positive
+**Positive:**
 
-✅ Markdown remains valid across multiple updates  
-✅ Clean, professional appearance  
-✅ Resistant to whitespace degradation  
-✅ Easy to maintain and extend  
-✅ Consistent with Markdown best practices
+- PR body format is stable across unlimited re-runs
+- Template changes are easy to make and test
+- Consistent blank lines and section separators in all cases
 
-### Negative
+**Negative:**
 
-⚠️ Output format changed from nested to flat structure  
-⚠️ May require documentation updates for users expecting old format
-
-## Migration Path
-
-- Old PRs: Still valid, just different formatting
-- New PRs: Will use clean format
-- No breaking changes to PR functionality
+- The output format changed from nested headings to flat headings with bold labels — existing PRs that were generated with the old format will not be retroactively updated, but they remain valid and will be replaced on the next PR update
 
 ## Related
 
-- Issue: Markdown structure degradation on re-processing
-- PR: After re-processing PR summary, action deviating from quality of .md structure
 - [ADR-001: Incremental Diff Processing Strategy](./001-incremental-diff-strategy.md)
