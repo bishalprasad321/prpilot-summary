@@ -41,12 +41,19 @@ interface GitHubEventPayload {
   };
 }
 
-type SupportedLLMProvider = "auto" | "openai" | "openai-compatible" | "gemini";
+type SupportedLLMProvider =
+  | "auto"
+  | "openai"
+  | "openai-compatible"
+  | "gemini"
+  | "groq";
 
 function isSupportedLLMProvider(
   provider: string
 ): provider is SupportedLLMProvider {
-  return ["auto", "openai", "openai-compatible", "gemini"].includes(provider);
+  return ["auto", "openai", "openai-compatible", "gemini", "groq"].includes(
+    provider
+  );
 }
 
 // =============================================================================
@@ -71,7 +78,7 @@ async function main() {
       llmApiKey: core.getInput("llm_api_key"),
       llmProvider: core.getInput("llm_provider") || "auto",
       llmApiBaseUrl: core.getInput("llm_api_base_url"),
-      aiModel: core.getInput("ai_model") || "gpt-4o-mini",
+      aiModel: core.getInput("ai_model") || "openai/gpt-oss-120b",
       maxDiffLines: parseInt(core.getInput("max_diff_lines")) || 5000,
       enableIncrementalDiffProcessing:
         core.getInput("enable_incremental_diff_processing") !== "false",
@@ -84,7 +91,7 @@ async function main() {
 
     if (!isSupportedLLMProvider(inputs.llmProvider)) {
       throw new Error(
-        `Unsupported llm_provider '${inputs.llmProvider}'. Expected one of: auto, openai, openai-compatible, gemini`
+        `Unsupported llm_provider '${inputs.llmProvider}'. Expected one of: auto, openai, openai-compatible, gemini, groq`
       );
     }
 

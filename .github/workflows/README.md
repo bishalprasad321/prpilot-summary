@@ -33,9 +33,9 @@ This directory contains the CI/CD workflows for the **prpilot-summary** action. 
 
 ### 2. **action-test.yml** - Integration Tests (Optional)
 
-**Trigger**: Pull requests and manual (`workflow_dispatch`)  
-**Status**: ⚠️ Optional (doesn't block merge if secrets missing)  
-**Duration**: ~1-2 minutes  
+**Trigger**: Pull requests and manual (`workflow_dispatch`)
+**Status**: ⚠️ Optional (doesn't block merge if secrets missing)
+**Duration**: ~1-2 minutes
 **Purpose**: Test the action in a realistic scenario
 
 **What it does:**
@@ -65,7 +65,29 @@ This directory contains the CI/CD workflows for the **prpilot-summary** action. 
 
 ---
 
-### 3. **security.yml** - Scheduled Security Audit (Optional)
+### 3. **action-test-groq.yml** - Groq Integration Tests (Optional)
+
+**Trigger**: Pull requests and manual (`workflow_dispatch`)
+**Status**: ⚠️ Optional (doesn't block merge if secrets missing)
+**Duration**: ~1-2 minutes
+**Purpose**: Test the action against Groq using the default Groq production model
+
+**What it does:**
+
+- Checks if `GROQ_API_KEY` secret is configured
+- Runs the action with `llm_provider: groq`
+- Uses `openai/gpt-oss-120b`
+- Logs execution results and outcomes
+- Auto-comments on PR if action fails due to missing secrets
+
+**Requirements:**
+
+- `GROQ_API_KEY` secret configured in repo
+- Requires `workflow_dispatch` permissions for manual runs
+
+---
+
+### 4. **security.yml** - Scheduled Security Audit (Optional)
 
 **Trigger**: Weekly (Monday 9 AM UTC) or manual  
 **Status**: ⚠️ Optional (doesn't block anything)  
@@ -102,6 +124,9 @@ User pushes code or creates PR
     If PR: ⚠️ action-test.yml runs (OPTIONAL)
         └─ Test action on PR with LLM
 
+    If PR: ⚠️ action-test-groq.yml runs (OPTIONAL)
+        └─ Test action on PR with Groq
+
     If Monday 9 AM: ⚠️ security.yml runs (OPTIONAL)
         └─ Audit dependencies
 ```
@@ -123,8 +148,8 @@ User pushes code or creates PR
    ```
 
 2. **For integration testing**:
-   - Ensure `GEMINI_API_KEY` is in secrets
-   - Manually trigger `action-test.yml` with `workflow_dispatch`
+   - Ensure `GROQ_API_KEY` or `GEMINI_API_KEY` is in secrets
+   - Manually trigger `action-test-groq.yml` or `action-test.yml` with `workflow_dispatch`
    - Check PR for AI-generated description
 
 3. **For security issues**:
@@ -146,6 +171,7 @@ User pushes code or creates PR
 
 3. **Secrets management**:
    - `GITHUB_TOKEN` - Auto-provided by GitHub
+   - `GROQ_API_KEY` - Add manually in Settings → Secrets
    - `GEMINI_API_KEY` - Add manually in Settings → Secrets
    - Never commit secrets or API keys
 
@@ -174,6 +200,8 @@ git push
 2. Click "New repository secret"
 3. Name: `GEMINI_API_KEY`, Value: your key from [Google AI Studio](https://aistudio.google.com/apikey)
 4. Save and re-run workflow
+
+For Groq integration tests, repeat the same steps with `GROQ_API_KEY`.
 
 **If you don't add secrets**:
 
@@ -212,11 +240,12 @@ npm audit fix --force
 
 ## CI/CD Pipeline Summary
 
-| Workflow          | Trigger         | Blocking | Duration | Purpose             |
-| ----------------- | --------------- | -------- | -------- | ------------------- |
-| `ci.yml`          | Push + PR       | ✅ Yes   | 2-3 min  | Core quality checks |
-| `action-test.yml` | PR + manual     | ❌ No    | 1-2 min  | Integration testing |
-| `security.yml`    | Weekly + manual | ❌ No    | 1-2 min  | Dependency audit    |
+| Workflow               | Trigger         | Blocking | Duration | Purpose                  |
+| ---------------------- | --------------- | -------- | -------- | ------------------------ |
+| `ci.yml`               | Push + PR       | ✅ Yes   | 2-3 min  | Core quality checks      |
+| `action-test.yml`      | PR + manual     | ❌ No    | 1-2 min  | Integration testing      |
+| `action-test-groq.yml` | PR + manual     | ❌ No    | 1-2 min  | Groq integration testing |
+| `security.yml`         | Weekly + manual | ❌ No    | 1-2 min  | Dependency audit         |
 
 ---
 

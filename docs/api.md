@@ -1,22 +1,19 @@
-# API Documentation
+# API Reference
 
-## GitHub Action Inputs
+## Action inputs
 
-### Required Inputs
+### Required inputs
 
 #### `github_token`
 
-**Type**: `string`  
-**Required**: ✅ Yes
+**Type:** `string`
 
-GitHub Personal Access Token or `${{ secrets.GITHUB_TOKEN }}` for workflow context.
+GitHub token used to read PR details and write the PR body. The default `${{ secrets.GITHUB_TOKEN }}` is sufficient.
 
-**Permissions Required**:
+Required permissions:
 
-- `pull-requests: write` - Update PR descriptions
-- `contents: read` - Read PR content and diffs
-
-**Example**:
+- `pull-requests: write` — update the PR body and post comments
+- `contents: read` — read diffs and commit history
 
 ```yaml
 github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -24,81 +21,69 @@ github_token: ${{ secrets.GITHUB_TOKEN }}
 
 #### `llm_api_key`
 
-**Type**: `string`  
-**Required**: ✅ Yes
+**Type:** `string`
 
-API key for your LLM provider (OpenAI, Gemini, etc.).
-
-**Example**:
+API key for the configured LLM provider.
 
 ```yaml
-llm_api_key: ${{ secrets.GEMINI_API_KEY }}
+llm_api_key: ${{ secrets.GROQ_API_KEY }}
 ```
 
 ---
 
-### Optional Inputs
+### Optional inputs
 
 #### `llm_provider`
 
-**Type**: `string`  
-**Required**: ❌ No  
-**Default**: `"auto"`  
-**Options**: `"auto"` | `"openai"` | `"openai-compatible"` | `"gemini"`
+**Type:** `string`  
+**Default:** `"auto"`  
+**Options:** `auto` | `groq` | `openai` | `openai-compatible` | `gemini`
 
-Specifies which LLM provider to use. `"auto"` attempts to detect based on model name.
-
-**Example**:
+Which LLM provider to use. When set to `auto`, the provider is inferred from the model name prefix (e.g. a model starting with `gemini` routes to Gemini, `gpt` routes to OpenAI).
 
 ```yaml
-llm_provider: gemini
+llm_provider: groq
 ```
 
 #### `llm_api_base_url`
 
-**Type**: `string`  
-**Required**: ❌ No  
-**Default**: `""` (empty)
+**Type:** `string`  
+**Default:** `""` (uses the provider's default endpoint)
 
-Custom API endpoint URL. Useful for:
+Custom API base URL. Useful for:
 
-- OpenAI-compatible providers (LiteLLM, Ollama, LocalAI)
-- Corporate proxies
-- Self-hosted LLM services
-
-**Example**:
+- Routing through a proxy
+- Self-hosted or third-party OpenAI-compatible services (LiteLLM, LocalAI, Ollama)
+- Corporate API gateways
 
 ```yaml
-llm_api_base_url: https://api.custom-provider.com/v1
+llm_api_base_url: https://api.your-proxy.example.com/v1
 ```
 
 #### `ai_model`
 
-**Type**: `string`  
-**Required**: ❌ No  
-**Default**: `"gpt-4o-mini"`
+**Type:** `string`  
+**Default:** `"openai/gpt-oss-120b"`
 
-The AI model to use. Examples:
+The model identifier to pass to the provider.
 
-- OpenAI: `"gpt-4o"`, `"gpt-4o-mini"`, `"gpt-3.5-turbo"`
-- Gemini: `"gemini-2.5-flash"`, `"gemini-2.0-flash"`, `"gemini-1.5-pro"`
-- Custom: Any model your endpoint supports
+Examples:
 
-**Example**:
+- Groq: `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `llama-3.3-70b-versatile`
+- OpenAI: `gpt-4o`, `gpt-4o-mini`, `gpt-3.5-turbo`
+- Gemini: `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-pro`
+- Custom: any model string your endpoint accepts
 
 ```yaml
-ai_model: gemini-2.5-flash
+ai_model: openai/gpt-oss-120b
 ```
 
 #### `max_diff_lines`
 
-**Type**: `number`  
-**Required**: ❌ No  
-**Default**: `5000`
+**Type:** `number`  
+**Default:** `5000`
 
-Maximum number of diff lines to process. If the diff exceeds this, the action will attempt to summarize large changes instead of processing line-by-line.
-
-**Example**:
+Maximum number of diff lines to process. When the diff exceeds this limit, lower-priority chunks (removed and renamed files) are dropped first. Increase for large PRs; decrease to reduce token usage and cost.
 
 ```yaml
 max_diff_lines: 8000
@@ -106,17 +91,12 @@ max_diff_lines: 8000
 
 #### `enable_incremental_diff_processing`
 
-**Type**: `boolean`  
-**Required**: ❌ No  
-**Default**: `true`
+**Type:** `boolean`  
+**Default:** `true`
 
-Enable intelligent incremental diff processing. When enabled:
+When enabled, the action fetches both an incremental diff (from last processed SHA to head) and the full diff (base to head), then compares their sizes. If the incremental diff is 30% or more of the full diff, the full diff is used to preserve context. Otherwise, only the incremental diff is processed.
 
-- On first push: processes full diff
-- On subsequent pushes: processes delta (new changes only)
-- If delta is large: automatically falls back to full diff for context
-
-**Example**:
+Set to `false` to always use the full diff.
 
 ```yaml
 enable_incremental_diff_processing: false
@@ -124,33 +104,36 @@ enable_incremental_diff_processing: false
 
 #### `debug`
 
-**Type**: `boolean`  
-**Required**: ❌ No  
-**Default**: `"true"`
+**Type:** `boolean`  
+**Default:** `"false"`
 
-Enable debug mode for verbose logging. Helpful for troubleshooting.
-
-**Example**:
+When `true`, the action logs the full LLM context object, raw API responses, formatted Markdown, and the final PR body. Useful for troubleshooting.
 
 ```yaml
-debug: "false"
+debug: "true"
 ```
 
 ---
 
-## Getting API Keys
+## API keys
 
-### Gemini API (Recommended for Development)
+### Groq (recommended, free tier available)
 
-✅ **Free tier available** | No billing account required | Tested and used in development
+The default model `openai/gpt-oss-120b` is selected for its 131k context window and 65k max completion limit.
 
-1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
-2. Click **"Create API Key"**
-3. Select **"Create new API key in new project"**
-4. Copy the generated API key
-5. Add to repo secrets as `GEMINI_API_KEY`
+1. Create an account at [console.groq.com](https://console.groq.com) and generate an API key
+2. Add it to your repository secrets as `GROQ_API_KEY`
 
-**In your workflow:**
+```yaml
+llm_provider: groq
+ai_model: openai/gpt-oss-120b
+llm_api_key: ${{ secrets.GROQ_API_KEY }}
+```
+
+### Gemini (free tier available)
+
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey) and create an API key (no billing required)
+2. Add it to your repository secrets as `GEMINI_API_KEY`
 
 ```yaml
 llm_provider: gemini
@@ -158,16 +141,13 @@ ai_model: gemini-2.5-flash
 llm_api_key: ${{ secrets.GEMINI_API_KEY }}
 ```
 
-### OpenAI API
+### OpenAI
 
-⚠️ **Requires billing account** | Charges will apply | Not used in development/testing due to costs
+> **Note:** OpenAI requires a billing account. API usage incurs charges.
 
-1. Create account on [platform.openai.com](https://platform.openai.com)
-2. Enable billing (mandatory - will charge for usage)
-3. Create API key in settings
-4. Add to repo secrets as `OPENAI_API_KEY`
-
-**In your workflow:**
+1. Create an account at [platform.openai.com](https://platform.openai.com) and enable billing
+2. Generate an API key
+3. Add it to your repository secrets as `OPENAI_API_KEY`
 
 ```yaml
 llm_provider: openai
@@ -175,99 +155,122 @@ ai_model: gpt-4o-mini
 llm_api_key: ${{ secrets.OPENAI_API_KEY }}
 ```
 
-### Other OpenAI-Compatible Providers
+### Other OpenAI-compatible providers
 
-Providers like LiteLLM, Ollama, LocalAI also work. See `llm_api_base_url` for custom endpoints.
+Use `llm_provider: openai-compatible` and set `llm_api_base_url` to your endpoint:
+
+```yaml
+llm_provider: openai-compatible
+llm_api_base_url: https://your-endpoint.example.com/v1
+ai_model: your-model-name
+llm_api_key: ${{ secrets.YOUR_API_KEY }}
+```
 
 ---
 
-## PR Template Format & Behavior
+## PR template format and behavior
 
-### Generated Template
-
-The action generates a complete, professional PR body template with four sections:
+### Generated template
 
 ```markdown
-## 📌 Summary
+## Summary
 
 <!-- AI:START -->
 
-## 🤖 AI Generated Summary
+## AI Generated Summary
 
-Summary of code changes and impact.
+Summary of changes.
 
 **Key Points:**
 
-- Implemented feature X
-- Improved performance by Y%
+- Point 1
+- Point 2
 
 **Highlights:**
 
-- Backward compatible
-- Zero downtime deployment
+- Highlight 1
+- Highlight 2
 
 <!-- AI:END -->
 
 ---
 
-## 🧑‍💻 Developer Notes
+## Developer Notes
 
 - Add any extra context here
 
 ---
 
-## ✅ Checklist
+## Checklist
 
-- [ ] Tests added
-- [ ] Documentation updated
+- [ ] Documentation updated / modified
 ```
 
-### Section Behavior
+### Section behavior
 
-| Section                     | AI Role          | User Role               | Preserved on Update |
-| --------------------------- | ---------------- | ----------------------- | ------------------- |
-| **📌 Summary**              | Not touched      | Optional custom summary | ✅ Yes              |
-| **🤖 AI Generated Summary** | Updated each run | Read-only               | ❌ No (regenerated) |
-| **🧑‍💻 Developer Notes**      | Not touched      | Add/edit notes freely   | ✅ **Always**       |
-| **✅ Checklist**            | Not touched      | Add/edit items freely   | ✅ **Always**       |
+| Section                  | Who controls it                                                        | Preserved on update |
+| ------------------------ | ---------------------------------------------------------------------- | ------------------- |
+| **Summary**              | Not touched by the action; available for a manual summary              | Yes                 |
+| **AI Generated Summary** | Regenerated on every run                                               | No                  |
+| **Developer Notes**      | User-controlled; pre-written descriptions are moved here automatically | Always              |
+| **Checklist**            | User-controlled; initial item generated from file change data          | Always              |
 
-### Content Preservation
+### Content preservation in detail
 
-**How It Works:**
+The action runs the following logic before updating the PR body:
 
-1. **First PR** → Generates complete template with defaults
-2. **User Edits** → Adds notes to "Developer Notes" or custom checklist items
-3. **PR Updates** → Action:
-   - Extracts your developer notes before update
-   - Extracts your checklist items before update
-   - Regenerates only the AI section
-   - Rebuilds template with your content preserved ✅
-4. **Result** → Zero data loss, your content stays forever
+1. If a raw description exists (text before any template markers), it is extracted
+2. If Developer Notes already exist, they are extracted
+3. The raw description and existing notes are merged (raw description first)
+4. The checklist is generated or preserved based on whether `*.md` files appear in the diff
+5. Only the content between `<!-- AI:START -->` and `<!-- AI:END -->` is replaced
+6. The rest of the body is rebuilt around the preserved content
 
 **Example:**
 
-```yaml
-Before Update:
-- Developer Notes: ["Note from reviewer", "TODO: verify with #42"]
-- Checklist: ["[x] Tests", "[ ] Security audit", "[ ] API docs"]
+Before the first run, the developer writes:
 
-After Update:
-- Developer Notes: ["Note from reviewer", "TODO: verify with #42"]  ← PRESERVED ✅
-- Checklist: ["[x] Tests", "[ ] Security audit", "[ ] API docs"]   ← PRESERVED ✅
-- AI Section: [NEW CONTENT]
 ```
+This PR refactors the auth module. Related to #42.
+```
+
+After the first run, the PR body becomes:
+
+```markdown
+## Summary
+
+<!-- AI:START -->
+
+## AI Generated Summary
+
+...
+
+<!-- AI:END -->
+
+---
+
+## Developer Notes
+
+This PR refactors the auth module. Related to #42.
+
+---
+
+## Checklist
+
+- [ ] Documentation updated / modified
+```
+
+On subsequent runs, the Developer Notes content is never touched.
 
 ### Idempotency
 
-- **Safe to run multiple times** → No duplicated content
-- **Only AI section changes** → Between markers `<!-- AI:START/END -->`
-- **Your content stays** → Developer notes and checklist untouched
+The action tracks the last processed commit SHA. If the SHA has not changed since the last run, the action exits immediately without calling the LLM or modifying the PR.
 
 ---
 
 ## TypeScript / JavaScript API
 
-If using this action as a library in Node.js:
+If you want to use the modules directly:
 
 ### Installation
 
@@ -286,53 +289,54 @@ import {
   Formatter,
 } from "prpilot-summary";
 
-// Initialize clients
-const github = new GitHubClient(token, { owner: "user", repo: "repo" });
+const github = new GitHubClient(token, { owner, repo });
 const diffProcessor = new DiffProcessor();
-const llm = new LLMClient(apiKey, model, { provider: "openai" });
+const llm = new LLMClient(apiKey, model, { provider: "groq" });
 const stateManager = new StateManager();
 const formatter = new Formatter();
 
-// Fetch PR details
 const pr = await github.getPullRequest(123);
 const files = await github.getChangedFiles(123);
 const diff = await github.getDiff(123);
+const commits = await github.getCommits(123);
 
-// Process diff
 const chunks = diffProcessor.processAndFilter(files, diff, 5000);
 
-// Prepare LLM context
 const context = {
   chunks,
-  commitMessages: [...],
-  repoMetadata: { ... },
-  stats: { ... },
+  commitMessages: commits.map((c) => c.message),
+  repoMetadata: {
+    owner,
+    name: repo,
+    prNumber: 123,
+    prTitle: pr.title,
+    prDescription: pr.body,
+  },
+  stats: {
+    filesChanged: files.length,
+    totalAdditions: chunks.reduce((n, c) => n + c.additions, 0),
+    totalDeletions: chunks.reduce((n, c) => n + c.deletions, 0),
+    commits: commits.length,
+  },
 };
 
-// Call LLM
 const prompt = llm.buildPrompt(context);
 const output = await llm.callLLM(prompt);
 
-// Format output
 const markdown = formatter.toMarkdown(output);
+const updatedBody = formatter.replaceAISection(pr.body ?? "", markdown, files);
+await github.updatePullRequest(123, { body: updatedBody });
 
-// Update PR
-const body = pr.body || "";
-const updated = formatter.replaceAISection(body, markdown);
-await github.updatePullRequest(123, { body: updated });
-
-// Save state
-stateManager.setLastProcessedSha(headSha);
+stateManager.setLastProcessedSha(commits[commits.length - 1].sha);
 ```
 
-### Classes
+### Class reference
 
-#### GitHubClient
+#### `GitHubClient`
 
 ```typescript
 class GitHubClient {
   constructor(githubToken: string, config: GitHubClientConfig);
-
   getPullRequest(prNumber: number): Promise<PRMetadata | null>;
   getChangedFiles(prNumber: number): Promise<FileChange[]>;
   getCommits(prNumber: number): Promise<CommitInfo[]>;
@@ -346,7 +350,7 @@ class GitHubClient {
 }
 ```
 
-#### DiffProcessor
+#### `DiffProcessor`
 
 ```typescript
 class DiffProcessor {
@@ -358,60 +362,36 @@ class DiffProcessor {
 }
 ```
 
-#### LLMClient
+#### `LLMClient`
 
 ```typescript
 class LLMClient {
   constructor(apiKey: string, model: string, options?: LLMClientOptions);
-
-  buildPrompt(context: LLMContext): string;
-  callLLM(prompt: string): Promise<Record<string, unknown>>;
+  buildPrompt(context: LLMContext): OpenAIMessage[];
+  callLLM(messages: OpenAIMessage[]): Promise<LLMOutput>;
   getProvider(): string;
 }
 ```
 
-#### Formatter
+#### `Formatter`
 
 ```typescript
 class Formatter {
   toMarkdown(llmOutput: LLMOutput): string;
-
-  // Smart content preservation with optional file data
   replaceAISection(
     existingBody: string,
     newAIContent: string,
-    files?: FileChange[] // Optional: file changes for dynamic checklist
+    files?: FileChange[] // used to generate the checklist
   ): string;
-
   getAISection(body: string): string | null;
 }
 ```
 
-**Smart Features** (when `files` parameter provided):
-
-- 📝 Extracts pre-written PR descriptions and moves to Developer Notes
-- ✅ Generates dynamic checklist based on file types changed
-- 🛡️ Preserves all user content (dev notes, checklist edits)
-- 🔄 Only regenerates AI section on PR updates
-
-**Dynamic Checklist Examples:**
-
-```typescript
-// Files changed: __tests__/auth.test.ts, docs/README.md
-formatter.replaceAISection(body, aiContent, files);
-
-// Generates checklist:
-// - [x] Tests added       (detected test files)
-// - [x] Documentation updated (detected .md files)
-// - [ ] Configuration validated (only if .json/.yml changed)
-```
-
-#### StateManager
+#### `StateManager`
 
 ```typescript
 class StateManager {
   constructor(workingDir?: string);
-
   getLastProcessedSha(): string | null;
   setLastProcessedSha(sha: string): void;
   getPRNumber(): number | null;
@@ -421,7 +401,7 @@ class StateManager {
 }
 ```
 
-### Types
+### Shared types
 
 ```typescript
 interface LLMOutput {
@@ -433,7 +413,14 @@ interface LLMOutput {
 
 interface FileChange {
   filename: string;
-  status: "added" | "modified" | "removed" | "renamed";
+  status:
+    | "added"
+    | "modified"
+    | "removed"
+    | "renamed"
+    | "copied"
+    | "unchanged"
+    | "type-changed";
   additions: number;
   deletions: number;
   changes: number;
@@ -442,7 +429,7 @@ interface FileChange {
 
 interface DiffChunk {
   file: string;
-  status: FileChange["status"];
+  status: string;
   additions: number;
   deletions: number;
   content: string;
@@ -466,75 +453,61 @@ interface CommitInfo {
 
 ---
 
-## Output Format
+## Output format
 
-### PR Description Section
-
-The action inserts the following into your PR description:
+The AI section inserted into the PR body follows this structure:
 
 ```markdown
-## 🤖 AI Generated Summary
+## AI Generated Summary
 
-[AI-generated summary of changes]
+[Concise summary of the changes — max ~40 words]
 
 **Key Points:**
 
-- Key point 1
-- Key point 2
-- Key point 3
+- [Up to 3 brief points reviewers should know]
 
 **Highlights:**
 
-- Notable change 1
-- Notable change 2
+- [Up to 2 notable aspects of the change]
 
-⚠️ **BREAKING CHANGES**
-[If applicable]
+> **Breaking change:** [Description if applicable]
 ```
 
-### HTML Markers
-
-The AI section is wrapped with HTML comments for reliable replacement:
+The section is wrapped in HTML comment markers that are invisible in rendered Markdown:
 
 ```html
 <!-- AI:START -->
-[AI-generated content here]
+...content...
 <!-- AI:END -->
 ```
 
-These markers:
-
-- Are invisible in rendered Markdown
-- Enable reliable section replacement
-- Preserve developer notes outside markers
+These markers allow the action to reliably locate and replace only the AI-generated portion on subsequent runs.
 
 ---
 
-## Error Handling
+## Error handling
 
-The action implements graceful error handling:
+If any step fails, the action:
 
-### On Error
+1. Logs the error with full details
+2. Attempts to post a comment on the PR explaining the failure
+3. Exits without modifying the PR body
+4. Sets the workflow step status to failed
 
-1. **Logs detailed error message**
-2. **Posts comment on PR** (if possible)
-3. **Does NOT modify PR description**
-4. **Sets action status to failed**
+Common errors and fixes:
 
-### Common Issues
-
-| Error                     | Cause                                   | Solution                                                    |
-| ------------------------- | --------------------------------------- | ----------------------------------------------------------- |
-| "Missing required inputs" | `github_token` or `llm_api_key` not set | Check secrets configuration                                 |
-| "Invalid llm_provider"    | Provider not supported                  | Use one of: `auto`, `openai`, `gemini`, `openai-compatible` |
-| "Failed to fetch PR"      | Invalid PR number or token permissions  | Verify PR number and token scopes                           |
-| "LLM execution failed"    | API error or rate limit                 | Check API key, quota, and retry                             |
+| Error                              | Likely cause                                      | Fix                                                                 |
+| ---------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
+| "Missing required inputs"          | Secret not configured                             | Add `github_token` and `llm_api_key` to repository secrets          |
+| "Unsupported llm_provider"         | Invalid provider string                           | Use one of: `auto`, `groq`, `openai`, `gemini`, `openai-compatible` |
+| "Failed to fetch PR"               | Wrong PR number or insufficient token permissions | Verify the PR number and token scope                                |
+| "LLM call failed after 3 attempts" | API error, rate limit, or malformed response      | Check the API key, provider status, and enable `debug: true`        |
 
 ---
 
-## Examples
+## Example workflows
 
-### Basic Setup
+### Basic Groq setup
 
 ```yaml
 name: Generate PR Description
@@ -550,25 +523,26 @@ jobs:
       pull-requests: write
       contents: read
     steps:
+      - uses: actions/checkout@v4
       - name: Generate AI PR Description
         uses: bishalprasad321/prpilot-summary@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
-          llm_provider: gemini
-          ai_model: gemini-2.5-flash
+          llm_api_key: ${{ secrets.GROQ_API_KEY }}
+          llm_provider: groq
+          ai_model: openai/gpt-oss-120b
 ```
 
-### Advanced Setup with Custom Provider
+### Custom OpenAI-compatible provider with debug logging
 
 ```yaml
-- name: Generate with Custom LLM Provider
+- name: Generate AI PR Description
   uses: bishalprasad321/prpilot-summary@v1
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
     llm_api_key: ${{ secrets.LITELLM_API_KEY }}
     llm_provider: openai-compatible
-    llm_api_base_url: https://api.litellm.ai/v1
+    llm_api_base_url: https://api.litellm.example.com/v1
     ai_model: gpt-4o-mini
     max_diff_lines: 10000
     enable_incremental_diff_processing: true
@@ -579,35 +553,26 @@ jobs:
 
 ## Troubleshooting
 
-### Enable Debug Logging
-
-Set `debug: "true"` to see detailed execution logs:
+### Enable debug logging
 
 ```yaml
 debug: "true"
 ```
 
-### Check PR for Errors
+This logs the full LLM context, raw responses, formatted Markdown, and the complete PR body before and after the update.
 
-If the action fails:
+### Handling rate limits
 
-1. Check GitHub Actions log
-2. Look for error comment on PR
-3. Verify secrets are configured
-4. Ensure token has correct permissions
+If you encounter rate limit errors from the LLM provider:
 
-### Rate Limiting
+- The action already retries up to 3 times with exponential backoff
+- For persistent limits, reduce `max_diff_lines` to keep context smaller
+- Consider switching to a provider with a higher rate limit (Groq has generous free-tier limits)
 
-If you hit LLM API rate limits:
+### Large diffs
 
-- Increase `max_diff_lines` to trigger summarization sooner
-- Disable `enable_incremental_diff_processing` to reduce API calls
-- Check your provider's usage dashboard
+For repositories with consistently large PRs:
 
-### Large Diffs
-
-For repositories with large diffs:
-
-- Increase `max_diff_lines` threshold
-- The action will skip when diff exceeds threshold
-- Consider breaking up changes into smaller PRs
+- Increase `max_diff_lines` (e.g. `8000` or `10000`)
+- Keep `enable_incremental_diff_processing: true` — on updates, only the delta is processed when it is small enough
+- Consider splitting very large PRs into smaller, focused changes

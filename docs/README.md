@@ -26,7 +26,7 @@ Generates a professional template with:
 - **Summary** section for overview
 - **AI Generated Summary** with key points and highlights
 - **Developer Notes** - user descriptions are extracted and preserved ✅
-- **Smart Checklist** - auto-generated based on file changes ✅
+- **Generic Checklist** - documentation checkbox auto-generated from `*.md` file changes ✅
 
 ### Smart Content Preservation
 
@@ -36,18 +36,15 @@ Generates a professional template with:
 - **Only AI section regenerates** - Other content is never touched
 - **Zero data loss** guaranteed
 
-### Dynamic Checklist
+### Generic Checklist
 
-Automatically generates checklist items based on files changed:
+Automatically generates a project-agnostic checklist item based on files changed:
 
-- ✅ Tests added (detected test files like `__tests__/`, `*.test.ts`)
-- ✅ Documentation updated (detected `.md`, `docs/`, `README` files)
-- ⬜ Configuration validated (detected `.json`, `.yml`, `.yaml`, `.toml` files)
-- ⬜ Performance reviewed (added for large diffs >500 changes)
-- ⬜ Breaking changes documented (added for large deletions >100 lines)
+- ✅ Documentation updated / modified (checked only when `*.md` files changed)
 
 ### Intelligent Processing
 
+- Groq, Gemini, OpenAI, and OpenAI-compatible provider support
 - Multi-language diff analysis (20+ languages)
 - Smart filtering (removes noise, keeps code)
 - Incremental processing for efficiency

@@ -1,12 +1,12 @@
-# 🚀 Quick Start - PR Pilot Summary
+# Quick Start
 
-Get AI-powered PR descriptions running in 5 minutes.
+Get AI-generated PR descriptions running in a few minutes.
 
-## Option 1: Use as GitHub Action (Recommended)
+## Option 1: Use as a GitHub Action (recommended)
 
-### In Your Workflow
+### Step 1 — Add the workflow file
 
-1. Create `.github/workflows/pr-description.yml`:
+Create `.github/workflows/pr-description.yml` in your repository:
 
 ```yaml
 name: Generate PR Description
@@ -28,233 +28,193 @@ jobs:
         uses: bishalprasad321/prpilot-summary@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          llm_api_key: ${{ secrets.GEMINI_API_KEY }}
-          llm_provider: gemini
-          ai_model: gemini-2.5-flash
+          llm_api_key: ${{ secrets.GROQ_API_KEY }}
+          llm_provider: groq
+          ai_model: openai/gpt-oss-120b
 ```
 
-2. Get your Gemini API Key (free, no billing required):
-   - Visit [Google AI Studio](https://aistudio.google.com/apikey)
-   - Click **"Create API Key"** button
-   - Select **"Create new API key in new project"**
-   - Copy the generated key
+### Step 2 — Get a Groq API key
 
-3. Add secrets to your repo:
-   - Go to `Settings` → `Secrets and variables` → `Actions`
-   - Click **"New repository secret"**
-   - Name: `GEMINI_API_KEY`
-   - Value: Paste your Gemini API key from step 2
-   - Click **"Add secret"**
+1. Go to [console.groq.com](https://console.groq.com) and create an account
+2. Generate an API key
+3. Copy the key
 
-4. Create a PR and watch the magic happen! ✨
+### Step 3 — Add the secret to your repository
 
-**Alternative Providers**: See [README.md](README.md#api-keys) for OpenAI or other LLM providers
+1. Go to **Settings → Secrets and variables → Actions**
+2. Click **New repository secret**
+3. Name: `GROQ_API_KEY`, Value: the key from step 2
+4. Click **Add secret**
+
+### Step 4 — Open a pull request
+
+Create or update a PR and the action will run automatically.
+
+**Alternative providers:** See [README.md](README.md#api-keys) for Gemini, OpenAI, and other options.
 
 ---
 
-## Option 2: Develop Locally
+## Option 2: Develop locally
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 20 or later
 - npm
 
-### Setup (2 minutes)
+### Setup
 
 ```bash
-# 1. Clone
 git clone https://github.com/YOUR_USERNAME/prpilot-summary.git
 cd prpilot-summary
-
-# 2. Install
 npm install
-
-# 3. Build and package the action
 npm run build
-
-# 4. Verify
 npm run verify
 ```
 
-### Development Commands
+### Development commands
 
 ```bash
-npm run build         # Compile TypeScript and bundle dist/
-npm run watch        # Auto-compile on changes
-npm run lint         # Check code quality
-npm run format       # Auto-format code
-npm run typecheck    # Full type check
-npm run dev          # Run with ts-node
+npm run build         # compile TypeScript and bundle to dist/
+npm run watch         # watch mode, recompiles on file changes
+npm run lint          # run ESLint
+npm run format        # run Prettier
+npm run typecheck     # type-check without emitting
+npm run dev           # run directly with ts-node
 ```
 
 ---
 
-## What Happens
+## What the action does
 
-When you create/update a PR:
+When a PR is opened or updated:
 
-```
-1. ✅ PR opened/updated
-2. 🤖 AI analyzes the changes
-3. � Generates complete PR template:
-   - Summary section (📌)
-   - AI Generated Summary (🤖) with insights
-   - Developer Notes (🧑‍💻) - your pre-written description is extracted here!
-   - Smart Checklist (✅) - auto-checked based on files changed
-4. 💾 Updates PR description automatically
-5. 👀 Reviewers get context instantly
-```
+1. The action reads the current diff and commit messages
+2. It sends filtered, chunked diff content to the configured LLM
+3. The LLM returns a structured summary
+4. The PR body is updated with the following sections:
+   - **Summary** — top-level section header
+   - **AI Generated Summary** — LLM-generated content (replaced on each run)
+   - **Developer Notes** — preserved across runs; pre-written descriptions are moved here automatically
+   - **Checklist** — a single documentation item, auto-checked when `*.md` files are modified
+5. State is persisted so the same commit is never processed twice
 
-### Smart Features
+### Key behaviors
 
-✨ **What makes it special:**
+- If you write a description before the action runs, it is extracted and placed in Developer Notes — nothing is lost
+- The `<!-- AI:START -->` / `<!-- AI:END -->` markers delimit the only section the action ever modifies
+- All other content in the PR body is left untouched
 
-- **If you write a description first**: It gets extracted and moved to "Developer Notes" (not lost!)
-- **Smart Checklist**:
-  - ✅ Tests added (if test files were modified)
-  - ✅ Documentation updated (if .md files were modified)
-  - ⬜ Configuration validated (if .json/.yml files were modified)
-  - ⬜ Performance reviewed (if changes are >500 lines)
-  - ⬜ Breaking changes documented (if deletions are >100 lines)
-- **Idempotent**: Safe to edit and re-run multiple times
-- **Content Preservation**: Your notes and checklist edits never get lost
-
-Example output:
+### Example PR body
 
 ```markdown
-## 📌 Summary
+## Summary
 
 <!-- AI:START -->
 
-## 🤖 AI Generated Summary
+## AI Generated Summary
 
 Refactored authentication to use async/await.
-Added token refresh mechanism with 5 min expiry.
+Added token refresh with a 5-minute expiry.
 
 **Key Points:**
 
-- Improved performance by 40%
-- Better error handling
+- Improved error handling
+- Reduced 401 errors by 95%
 
 **Highlights:**
 
-- Zero downtime deployment
+- Zero-downtime deployment
 - Backward compatible
 <!-- AI:END -->
 
 ---
 
-## 🧑‍💻 Developer Notes
+## Developer Notes
 
 - Add any extra context here
 
 ---
 
-## ✅ Checklist
+## Checklist
 
-- [ ] Tests added
-- [ ] Documentation updated
-
-### Key Points
-
-- Converted callbacks to Promises
-- Added automatic token refresh
-- 95% reduction in 401 errors
-
-### Highlights
-
-- Better code maintainability
-- Enhanced security with rate limiting
+- [ ] Documentation updated / modified
 ```
 
 ---
 
 ## Configuration
 
-### Model Selection
-
-Change in your workflow:
+### Switching providers
 
 ```yaml
 with:
+  llm_provider: groq
+  ai_model: openai/gpt-oss-120b
+
+  # or Gemini
   llm_provider: gemini
   ai_model: gemini-2.5-flash
-  # or
+
+  # or OpenAI
   llm_provider: openai
   ai_model: gpt-4o-mini
-  # or let the action infer the provider from the model name
+
+  # or let the action detect provider from the model name
   ai_model: gemini-2.5-flash
 ```
 
-### Max Diff Size
+### Adjusting the diff size limit
 
 ```yaml
 with:
-  max_diff_lines: 5000 # Default
-  # Increase for large PRs, decrease to save costs
+  max_diff_lines: 5000 # default; increase for large PRs
 ```
 
-### Debug Mode
+### Enabling verbose logs
 
 ```yaml
 with:
-  debug: true # Logs everything
+  debug: true
 ```
 
 ---
 
 ## Troubleshooting
 
-| Problem                   | Solution                                                               |
-| ------------------------- | ---------------------------------------------------------------------- |
-| "Missing required inputs" | Add your provider API key to repo secrets and pass it to `llm_api_key` |
-| "Action didn't run"       | Check PR trigger: `types: [opened, synchronize]`                       |
-| "No changes to document"  | PR diff might be empty or all files ignored                            |
-| "Diff too large"          | Increase `max_diff_lines` or split PR                                  |
-| "API error 401"           | Check the provider key is valid and matches `llm_provider`             |
+| Problem                   | Solution                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| "Missing required inputs" | Add your provider API key to repository secrets and pass it to `llm_api_key` |
+| "Action didn't run"       | Check the trigger: `types: [opened, synchronize]`                            |
+| "No changes to document"  | The diff may be empty or all changed files are filtered out                  |
+| "Diff too large"          | Increase `max_diff_lines` or split the PR into smaller pieces                |
+| "API error 401"           | Verify the API key is valid and matches the selected `llm_provider`          |
 
-See [README.md](README.md#troubleshooting) for more.
-
----
-
-## Next Steps
-
-- 📖 Read [README.md](README.md) for full docs
-- 👨‍💻 See [DEVELOPMENT.md](DEVELOPMENT.md) for architecture
-- 🤝 Check [CONTRIBUTING.md](CONTRIBUTING.md) to contribute
-- 📝 Review [CHANGELOG.md](CHANGELOG.md) for updates
+For more detail see [README.md](README.md#troubleshooting).
 
 ---
 
-## Costs
+## Next steps
 
-- **Per PR**: Varies by provider and model
-- **1000 PRs**: ~$5
-- **10,000 PRs**: ~$50
+- [README.md](README.md) — full reference documentation
+- [DEVELOPMENT.md](DEVELOPMENT.md) — architecture and module guide
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guidelines
+- [CHANGELOG.md](CHANGELOG.md) — version history
 
-Prices vary based on model and diff size.
+---
+
+## Estimated costs
+
+| Volume     | Estimated cost |
+| ---------- | -------------- |
+| 1,000 PRs  | ~$5            |
+| 10,000 PRs | ~$50           |
+
+Actual cost depends on the provider, model, and average diff size.
 
 ---
 
 ## Support
 
-- � [Full API Documentation](../docs/api.md)
-- 📋 [Template Format Guide](../docs/template.md)
-- �💬 [GitHub Discussions](https://github.com/bishalprasad321/prpilot-summary/discussions)
-- 🐛 [Report Issues](https://github.com/bishalprasad321/prpilot-summary/issues)
-- 📧 Email: bishalprasad321@gmail.com
-
----
-
-## Give It a Star ⭐
-
-If this helps, please star the repo!
-
-```bash
-# Clone, setup, build, done!
-git clone https://github.com/bishalprasad321/prpilot-summary.git
-cd prpilot-summary
-npm install && npm run build
-```
-
-Happy coding! 🎉
+- [GitHub Issues](https://github.com/bishalprasad321/prpilot-summary/issues)
+- [GitHub Discussions](https://github.com/bishalprasad321/prpilot-summary/discussions)
+- Email: bishalprasad321@gmail.com

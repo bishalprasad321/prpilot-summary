@@ -6,42 +6,30 @@ Accepted
 
 ## Context
 
-When a PR receives new commits, the action needs to decide whether to:
+When a PR receives new commits, the action must decide whether to process only the delta (changes since the last run) or the full diff from base to head.
 
-1. Process only the delta (new changes since last update) - **Incremental mode**
-2. Process the full diff from base to head - **Full mode**
+Processing only the delta is efficient but risks giving the LLM an incomplete view of the PR. For example, if a developer rewrites a large portion of the codebase in a follow-up commit, the incremental diff alone provides enough context. But if a small fixup commit is pushed after a large initial change, the incremental diff is trivially small and the LLM would produce a description that ignores the bulk of the work.
 
-The problem arises when new commits add significantly more changes than previous ones. Processing only the delta leaves the LLM without proper context about the complete PR scope, leading to incomplete or inconsistent descriptions.
+The question is: how do we decide which mode to use on a given run?
 
 ## Decision
 
-Implement an intelligent strategy that:
+On every `synchronize` event (i.e. new commits pushed to a PR) where incremental processing is enabled:
 
-1. Fetches both incremental and full diffs when in synchronize event
-2. Compares their sizes using a 30% threshold
-3. If incremental diff ≥ 30% of full diff size → switch to **full mode**
-4. Otherwise, use **incremental mode** for performance
-
-### Implementation Details
+1. Fetch both the incremental diff (from last processed SHA to current head) and the full diff (from base to current head)
+2. Count the lines in each
+3. If the incremental diff is **30% or more** of the full diff by line count, use the full diff
+4. Otherwise, use the incremental diff
 
 ```typescript
-// In src/index.ts, STEP 6
-const incrementalDiff = await gitHub.getDiffBetween(
-  lastProcessedSha,
-  currentHeadSha
-);
-const fullDiff = await gitHub.getDiff(prNumber);
-
 const incrementalLineCount = incrementalDiff.split("\n").length;
 const fullLineCount = fullDiff.split("\n").length;
-const incrementalThreshold = fullLineCount * 0.3;
+const threshold = fullLineCount * 0.3;
 
-if (incrementalLineCount >= incrementalThreshold) {
-  // Use full diff for complete context
+if (incrementalLineCount >= threshold) {
   diffContent = fullDiff;
   diffMode = "full";
 } else {
-  // Use incremental for performance
   diffContent = incrementalDiff;
   diffMode = "incremental";
 }
@@ -49,40 +37,40 @@ if (incrementalLineCount >= incrementalThreshold) {
 
 ## Rationale
 
-### Why Compare Sizes?
+The 30% threshold is based on the following reasoning:
 
-- **Performance**: Small incremental diffs are fast to process
-- **Context**: Large incremental diffs likely contain substantial changes requiring full context
-- **30% Threshold**: Empirically chosen balance between performance and accuracy
+- If the new commits introduce less than a third of the total diff, they are likely small fixups or minor additions. The LLM can produce a useful incremental update without full context.
+- If the new commits account for 30% or more of the total diff, they represent a substantial portion of the PR. Using an incremental diff in this case would cause the LLM to ignore the earlier work, producing an inaccurate or incomplete description.
 
-### Alternatives Considered
+This avoids the two failure modes:
 
-1. **Always use full diff**: Simple but inefficient for incremental updates
-2. **Always use incremental diff**: Causes context loss for large changesets
-3. **Use line count delta**: Less reliable than comparative sizing
-4. **Configurable threshold**: Adds complexity; 30% is a good default
+- Always using the full diff wastes tokens and increases latency on trivial updates
+- Always using the incremental diff causes silent context loss on substantial follow-up commits
+
+### Alternatives considered
+
+| Approach                                                | Reason rejected                                                                                                             |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Always use full diff                                    | Inefficient for routine small updates; higher token cost                                                                    |
+| Always use incremental diff                             | Causes context loss when follow-up commits are significant                                                                  |
+| Compare total additions/deletions instead of line count | Unified diff line count is a straightforward and reliable proxy; additions/deletions alone can be misleading for moved code |
+| Make the threshold configurable                         | Adds complexity without meaningful benefit; 30% is a reasonable default for most repositories                               |
 
 ## Consequences
 
-### Positive
+**Positive:**
 
-✅ Consistent LLM context across PR updates  
-✅ Accurate descriptions for large changesets  
-✅ Maintains performance for small incremental changes  
-✅ Prevents confusing partial descriptions
+- Consistent LLM context regardless of how incrementally a PR is developed
+- Accurate descriptions for PRs with substantial follow-up commits
+- Reduced token usage for PRs with small routine updates
 
-### Negative
+**Negative:**
 
-⚠️ Slightly higher API costs when threshold triggers full mode  
-⚠️ Additional API call needed (fetches both diffs)
+- Every `synchronize` run fetches two diffs instead of one, adding one extra GitHub API call
+- Slightly higher API usage on runs that fall back to full mode
 
-## Trade-offs
-
-- **Cost vs Accuracy**: Extra API call ensures accurate descriptions for important cases
-- **Simplicity vs Flexibility**: Fixed threshold simpler than configuration
+The extra API call is inexpensive relative to the LLM call and the cost of generating an inaccurate PR description.
 
 ## Related
 
-- Issue: Incremental diff causing context loss on large PRs
-- PR: Logic not functioning correctly when newer commits added more git diff
-- See also: [ADR-002: Markdown Structure Preservation](./002-markdown-structure-preservation.md)
+- [ADR-002: Markdown Structure Preservation](./002-markdown-structure-preservation.md)
