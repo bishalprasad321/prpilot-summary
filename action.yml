@@ -72,5 +72,5 @@ runs:
   main: "dist/index.js"
 
 branding:
-  icon: "git-pull-request"
-  color: "blue"
+  icon: "file-text"
+  color: "orange"
