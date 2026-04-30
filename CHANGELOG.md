@@ -11,25 +11,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Groq LLM provider support using Groq's OpenAI-compatible chat completions API
-- Default Groq model set to `openai/gpt-oss-120b`
-- Separate Groq integration workflow using `secrets.GROQ_API_KEY`
-- **Smart Content Preservation**: Automatically extract and preserve user-written PR descriptions to Developer Notes section
-- **Generic Checklist Generation**: Auto-generate a project-agnostic documentation checkbox:
-  - ✅ Documentation updated / modified (checked only when `*.md` files are modified)
-- **Workflow Refactoring**: Separated monolithic GitHub Actions workflow into 3 purpose-driven workflows:
-  - `ci.yml`: Fast core quality checks (required, ~2-3 min)
-  - `action-test.yml`: Integration testing (optional, ~1-2 min)
-  - `security.yml`: Scheduled security audits (weekly, ~1-2 min)
-- Enhanced documentation with smart features explanation
-- Updated PR template with all checklist items
-- Job outputs pattern for secure secrets handling in GitHub Actions
+- Groq LLM provider support via Groq's OpenAI-compatible chat completions API
+- Default model set to `openai/gpt-oss-120b` when using the Groq provider
+- Dedicated Groq integration workflow (`action-test-groq.yml`) using `GROQ_API_KEY`
+- Smart content preservation: user-written PR descriptions are extracted and moved to the Developer Notes section before the AI section is updated
+- Generic checklist generation: a single project-agnostic documentation checkbox is auto-generated based on whether `*.md` files were modified
+- Workflow refactoring: replaced the monolithic workflow with three purpose-scoped workflows:
+  - `ci.yml` — core quality checks, required on every push (~2–3 min)
+  - `action-test.yml` — integration test against a live PR, optional (~1–2 min)
+  - `security.yml` — scheduled weekly dependency audit (~1–2 min)
+- Job outputs pattern for safer secrets detection in GitHub Actions workflows
 
 ### Changed
 
-- Improved `replaceAISection()` method to accept optional file list for generic checklist generation
-- Enhanced formatter with intelligent content extraction and merging
-- Updated documentation (README, DEVELOPMENT, API, Architecture, QUICKSTART) to reflect new features
+- `replaceAISection()` now accepts an optional `FileChange[]` parameter used to generate the checklist
+- `Formatter` class extended with content extraction and merging logic
+- Documentation updated across README, DEVELOPMENT, API, Architecture, and QUICKSTART to reflect new features
 
 ### Deprecated
 

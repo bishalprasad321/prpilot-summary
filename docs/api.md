@@ -23,9 +23,7 @@ github_token: ${{ secrets.GITHUB_TOKEN }}
 
 **Type:** `string`
 
-API key for your LLM provider (Groq, Gemini, OpenAI, etc.).
-
-**Example**:
+API key for the configured LLM provider.
 
 ```yaml
 llm_api_key: ${{ secrets.GROQ_API_KEY }}
@@ -37,10 +35,9 @@ llm_api_key: ${{ secrets.GROQ_API_KEY }}
 
 #### `llm_provider`
 
-**Type**: `string`  
-**Required**: ❌ No  
-**Default**: `"auto"`  
-**Options**: `"auto"` | `"groq"` | `"openai"` | `"openai-compatible"` | `"gemini"`
+**Type:** `string`  
+**Default:** `"auto"`  
+**Options:** `auto` | `groq` | `openai` | `openai-compatible` | `gemini`
 
 Which LLM provider to use. When set to `auto`, the provider is inferred from the model name prefix (e.g. a model starting with `gemini` routes to Gemini, `gpt` routes to OpenAI).
 
@@ -55,11 +52,9 @@ llm_provider: groq
 
 Custom API base URL. Useful for:
 
-- Groq/OpenAI-compatible providers (LiteLLM, Ollama, LocalAI)
-- Corporate proxies
-- Self-hosted LLM services
-
-**Example**:
+- Routing through a proxy
+- Self-hosted or third-party OpenAI-compatible services (LiteLLM, LocalAI, Ollama)
+- Corporate API gateways
 
 ```yaml
 llm_api_base_url: https://api.your-proxy.example.com/v1
@@ -67,16 +62,12 @@ llm_api_base_url: https://api.your-proxy.example.com/v1
 
 #### `ai_model`
 
-**Type**: `string`  
-**Required**: ❌ No  
-**Default**: `"openai/gpt-oss-120b"`
+**Type:** `string`  
+**Default:** `"openai/gpt-oss-120b"`
 
 The model identifier to pass to the provider.
 
-- Groq: `"openai/gpt-oss-120b"`, `"openai/gpt-oss-20b"`, `"llama-3.3-70b-versatile"`
-- OpenAI: `"gpt-4o"`, `"gpt-4o-mini"`, `"gpt-3.5-turbo"`
-- Gemini: `"gemini-2.5-flash"`, `"gemini-2.0-flash"`, `"gemini-1.5-pro"`
-- Custom: Any model your endpoint supports
+Examples:
 
 - Groq: `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `llama-3.3-70b-versatile`
 - OpenAI: `gpt-4o`, `gpt-4o-mini`, `gpt-3.5-turbo`
@@ -126,24 +117,7 @@ debug: "true"
 
 ## API keys
 
-### Groq API (Recommended Default)
-
-✅ **Free tier available** | OpenAI-compatible API | Fast production models
-
-The default model is `openai/gpt-oss-120b`, selected from Groq production models for its strong capability, 131k context window, and 65k max completion limit.
-
-1. Create a Groq API key from the Groq console
-2. Add to repo secrets as `GROQ_API_KEY`
-
-**In your workflow:**
-
-```yaml
-llm_provider: groq
-ai_model: openai/gpt-oss-120b
-llm_api_key: ${{ secrets.GROQ_API_KEY }}
-```
-
-### Gemini API
+### Groq (recommended, free tier available)
 
 The default model `openai/gpt-oss-120b` is selected for its 131k context window and 65k max completion limit.
 
@@ -407,30 +381,13 @@ class Formatter {
   replaceAISection(
     existingBody: string,
     newAIContent: string,
-    files?: FileChange[] // Optional: file changes for generic checklist
+    files?: FileChange[] // used to generate the checklist
   ): string;
   getAISection(body: string): string | null;
 }
 ```
 
-**Smart Features** (when `files` parameter provided):
-
-- 📝 Extracts pre-written PR descriptions and moves to Developer Notes
-- ✅ Generates a generic checklist based on markdown file changes
-- 🛡️ Preserves all user content (dev notes, checklist edits)
-- 🔄 Only regenerates AI section on PR updates
-
-**Generic Checklist Example:**
-
-```typescript
-// Files changed: docs/README.md
-formatter.replaceAISection(body, aiContent, files);
-
-// Generates checklist:
-// - [x] Documentation updated / modified
-```
-
-#### StateManager
+#### `StateManager`
 
 ```typescript
 class StateManager {
@@ -539,14 +496,12 @@ If any step fails, the action:
 
 Common errors and fixes:
 
-### Common Issues
-
-| Error                     | Cause                                   | Solution                                                            |
-| ------------------------- | --------------------------------------- | ------------------------------------------------------------------- |
-| "Missing required inputs" | `github_token` or `llm_api_key` not set | Check secrets configuration                                         |
-| "Invalid llm_provider"    | Provider not supported                  | Use one of: `auto`, `groq`, `openai`, `gemini`, `openai-compatible` |
-| "Failed to fetch PR"      | Invalid PR number or token permissions  | Verify PR number and token scopes                                   |
-| "LLM execution failed"    | API error or rate limit                 | Check API key, quota, and retry                                     |
+| Error                              | Likely cause                                      | Fix                                                                 |
+| ---------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
+| "Missing required inputs"          | Secret not configured                             | Add `github_token` and `llm_api_key` to repository secrets          |
+| "Unsupported llm_provider"         | Invalid provider string                           | Use one of: `auto`, `groq`, `openai`, `gemini`, `openai-compatible` |
+| "Failed to fetch PR"               | Wrong PR number or insufficient token permissions | Verify the PR number and token scope                                |
+| "LLM call failed after 3 attempts" | API error, rate limit, or malformed response      | Check the API key, provider status, and enable `debug: true`        |
 
 ---
 

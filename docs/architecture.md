@@ -101,11 +101,7 @@ Prepares raw diff content for LLM consumption.
 
 ### LLM Client (`src/llm/llm-client.ts`)
 
-- Groq
-- OpenAI (GPT-4, GPT-3.5)
-- Gemini
-- OpenAI-compatible endpoints
-- Auto-detection
+Abstracts provider differences. Supports Groq, OpenAI, Gemini, and any OpenAI-compatible endpoint. When `provider` is `"auto"`, the provider is inferred from the model name prefix.
 
 - **Retry policy:** up to 3 attempts with exponential backoff (1s, 2s, 4s between attempts)
 - **JSON repair:** attempts to extract valid JSON from fenced code blocks or partial responses before failing
@@ -115,41 +111,7 @@ Prepares raw diff content for LLM consumption.
 
 Converts the LLM `LLMOutput` object to Markdown and manages the PR body template.
 
-**Responsibility**: Convert LLM output to Markdown and intelligently manage PR body sections with smart content preservation
-
-**Key Methods**:
-
-- `toMarkdown(llmOutput)` - Convert JSON to Markdown (AI content only)
-- `replaceAISection(body, content, files?)` - Replace/append AI section with smart content preservation
-- `extractRawPRDescription(body)` - Extract user pre-written descriptions
-- `generateDynamicChecklist(files)` - Create generic checklist based on markdown file changes
-- `extractExistingDeveloperNotes(body)` - Preserve developer notes
-- `extractExistingChecklist(body)` - Preserve user's custom checklist items
-- `createCompleteTemplate(aiContent, devNotes, checklist)` - Generate full template
-- `replaceSectionWithTemplate(...)` - Update template with preserved content
-
-**Features**:
-
-- ✅ Extracts and preserves user-written PR descriptions
-- ✅ Moves raw descriptions to Developer Notes section
-- ✅ Generates generic checklist based on markdown file changes:
-  - ✅ Documentation updated / modified (checked only when `*.md` files changed)
-- ✅ Preserves developer notes and checklist items
-- ✅ Uses HTML comments as markers (`<!-- AI:START -->...<!-- AI:END -->`)
-- ✅ Generates complete template on first run (4 sections)
-- ✅ Intelligent content extraction using regex patterns
-- ✅ Maintains consistent spacing and structure
-- ✅ Handles edge cases (empty body, missing sections, no file data)
-
-**Content Preservation Logic**:
-
-1. **Extract** - Raw description from PR body
-2. **Merge** - Raw description + existing developer notes
-3. **Generate** - Generic checklist based on markdown files changed
-4. **Update** - Replace only AI section, preserve everything else
-5. **Result** - Zero data loss, smart suggestions
-
-**PR Body Template Structure**:
+**Template structure:**
 
 ```markdown
 ## Summary
@@ -197,14 +159,9 @@ Reads and writes a small JSON file (`.ai-pr-state.json`) to the working director
 
 ```typescript
 {
-  githubToken: string;          // GitHub API token
-  llmApiKey: string;            // LLM provider API key
-  llmProvider: string;          // Provider: auto|groq|openai|gemini|openai-compatible
-  llmApiBaseUrl?: string;       // Custom endpoint (optional)
-  aiModel: string;              // Model name (e.g., openai/gpt-oss-120b)
-  maxDiffLines: number;         // Truncate threshold (default: 5000)
-  enableIncrementalDiffProcessing: boolean; // Use incremental mode
-  debug: boolean;               // Verbose logging
+  lastProcessedSha: string | null;
+  processedAt: string; // ISO 8601
+  prNumber: number | null;
 }
 ```
 
